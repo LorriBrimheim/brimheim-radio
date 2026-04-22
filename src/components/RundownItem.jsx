@@ -1,152 +1,181 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { formatDuration, formatTimestamp, ITEM_TYPES, MAX_SPEAK, MAX_SPEAK_SOLO, parseDuration } from '../utils';
+import { formatDuration, ITEM_TYPES, MAX_SPEAK, parseDuration } from '../utils';
 
-const SPEAK_WARN_COLOR = 'var(--yellow)';
-const SPEAK_OK_COLOR = 'var(--text-dim)';
+const SEGMENT_OPTIONS = [
+  { value: 'solo', label: 'Solo DJ' },
+  { value: 'guest', label: 'Gæst' },
+];
 
-export default function RundownItem({ item, index, onRemove, onUpdate, cumSecs, isInHour1 }) {
-  const [editing, setEditing] = useState(false);
-  const [draft, setDraft] = useState({});
+const TYPE_OPTIONS = [
+  { value: ITEM_TYPES.SONG, label: 'Sang' },
+  { value: ITEM_TYPES.SPEAK, label: 'Speak' },
+];
 
+const inputStyle = {
+  fontSize: '0.8rem',
+  padding: '4px 7px',
+  width: '100%',
+  boxSizing: 'border-box',
+};
+
+export default function RundownItem({ item, index, onRemove, onUpdate, cumSecs }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: item.id });
 
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-    opacity: isDragging ? 0.4 : 1,
-  };
-
+  const segment = item.segment || (item.isGuest ? 'guest' : 'solo');
   const isSong = item.type === ITEM_TYPES.SONG;
-  const isSpeak = item.type === ITEM_TYPES.SPEAK;
+  const isSpeakOver = item.type === ITEM_TYPES.SPEAK && item.duration > MAX_SPEAK;
 
-  const speakOverMax = isSpeak && item.duration > MAX_SPEAK;
-  const speakOverSolo = isSpeak && isInHour1 && item.duration > MAX_SPEAK_SOLO; // rough solo check
+  // Local state for controlled inputs
+  const [durStr, setDurStr] = useState(item.duration > 0 ? formatDuration(item.duration) : '');
+  const [titleArtist, setTitleArtist] = useState(
+    isSong
+      ? `${item.title || ''}${item.artist ? ' — ' + item.artist : ''}`
+      : (item.notes || '')
+  );
 
-  const startEdit = () => {
-    setDraft({ ...item, durationStr: formatDuration(item.duration) });
-    setEditing(true);
-  };
-
-  const saveEdit = () => {
-    const updated = { ...draft, duration: parseDuration(draft.durationStr) };
-    delete updated.durationStr;
-    onUpdate(item.id, updated);
-    setEditing(false);
-  };
-
-  const tagStyle = (color, bg) => ({
-    fontSize: '0.65rem',
-    padding: '2px 6px',
-    borderRadius: 3,
-    background: bg || 'transparent',
-    color,
-    border: `1px solid ${color}`,
-    lineHeight: 1.4,
-  });
-
-  if (editing) {
-    return (
-      <div ref={setNodeRef} style={{ ...style, background: 'var(--surface2)', border: '1px solid var(--accent2)', borderRadius: 6, padding: 14, marginBottom: 6 }}>
-        {isSong && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-              <input value={draft.title || ''} onChange={e => setDraft(d => ({ ...d, title: e.target.value }))} placeholder="Title" />
-              <input value={draft.artist || ''} onChange={e => setDraft(d => ({ ...d, artist: e.target.value }))} placeholder="Artist" />
-            </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '120px 1fr', gap: 8 }}>
-              <input value={draft.durationStr || ''} onChange={e => setDraft(d => ({ ...d, durationStr: e.target.value }))} placeholder="Duration" />
-              <input value={draft.notes || ''} onChange={e => setDraft(d => ({ ...d, notes: e.target.value }))} placeholder="Notes" />
-            </div>
-            <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', fontSize: '0.8rem' }}>
-              {[['isDanish','🇩🇰 Danish'],['isP6Beat','📻 P6 Beat'],['isGuest','🎤 Guest'],['diskoteketCleared','✅ Diskoteket']].map(([k,l]) => (
-                <label key={k} style={{ display: 'flex', gap: 5, alignItems: 'center', cursor: 'pointer', color: 'var(--text-dim)' }}>
-                  <input type="checkbox" checked={!!draft[k]} onChange={e => setDraft(d => ({ ...d, [k]: e.target.checked }))}
-                    style={{ accentColor: 'var(--accent2)' }} />
-                  {l}
-                </label>
-              ))}
-            </div>
-          </div>
-        )}
-        {isSpeak && (
-          <div style={{ display: 'grid', gridTemplateColumns: '120px 1fr', gap: 8 }}>
-            <input value={draft.durationStr || ''} onChange={e => setDraft(d => ({ ...d, durationStr: e.target.value }))} placeholder="Duration" />
-            <input value={draft.notes || ''} onChange={e => setDraft(d => ({ ...d, notes: e.target.value }))} placeholder="Topic / notes" />
-          </div>
-        )}
-        <div style={{ marginTop: 10, display: 'flex', gap: 8 }}>
-          <button onClick={saveEdit} style={{ padding: '5px 12px', background: 'var(--accent2)', color: '#0e0e0e', borderRadius: 4, fontSize: '0.8rem' }}>Save</button>
-          <button onClick={() => setEditing(false)} style={{ padding: '5px 12px', background: 'var(--surface3)', color: 'var(--text-dim)', borderRadius: 4, fontSize: '0.8rem' }}>Cancel</button>
-        </div>
-      </div>
+  // Sync when type changes
+  useEffect(() => {
+    setTitleArtist(
+      item.type === ITEM_TYPES.SONG
+        ? `${item.title || ''}${item.artist ? ' — ' + item.artist : ''}`
+        : (item.notes || '')
     );
-  }
+  }, [item.type]);
+
+  // Sync duration when item changes from outside (e.g. drag reorder)
+  useEffect(() => {
+    setDurStr(item.duration > 0 ? formatDuration(item.duration) : '');
+  }, [item.id]);
+
+  const update = (field, value) => onUpdate(item.id, { [field]: value });
+
+  const handleTitleBlur = () => {
+    if (item.type === ITEM_TYPES.SONG) {
+      const parts = titleArtist.split(' — ');
+      onUpdate(item.id, { title: parts[0].trim(), artist: parts.slice(1).join(' — ').trim() });
+    } else {
+      update('notes', titleArtist);
+    }
+  };
+
+  const handleDurBlur = () => {
+    const secs = parseDuration(durStr);
+    update('duration', secs);
+    setDurStr(secs > 0 ? formatDuration(secs) : '');
+  };
+
+  const formatTimestamp = (secs) => {
+    const m = Math.floor(secs / 60);
+    const s = secs % 60;
+    return `${m}:${s.toString().padStart(2, '0')}`;
+  };
 
   return (
-    <div ref={setNodeRef} style={{
-      ...style,
-      background: 'var(--surface)',
-      border: `1px solid ${speakOverMax ? 'var(--red)' : 'var(--border)'}`,
-      borderLeft: `3px solid ${isSong ? (item.isGuest ? 'var(--guest)' : 'var(--solo)') : 'var(--accent2)'}`,
-      borderRadius: 6,
-      padding: '10px 14px',
-      marginBottom: 5,
-      display: 'flex',
-      alignItems: 'center',
-      gap: 10,
-    }}>
+    <div
+      ref={setNodeRef}
+      style={{
+        transform: CSS.Transform.toString(transform),
+        transition,
+        opacity: isDragging ? 0.4 : 1,
+        display: 'grid',
+        gridTemplateColumns: '20px 100px 1fr 72px 72px 48px 36px 32px',
+        gap: 6,
+        alignItems: 'center',
+        padding: '5px 10px',
+        marginBottom: 4,
+        background: 'var(--surface)',
+        border: `1px solid ${isSpeakOver ? 'var(--red)' : 'var(--border)'}`,
+        borderLeft: `3px solid ${segment === 'guest' ? 'var(--guest)' : 'var(--solo)'}`,
+        borderRadius: 6,
+      }}
+    >
       {/* Drag handle */}
-      <div {...attributes} {...listeners} style={{ cursor: 'grab', color: 'var(--text-muted)', fontSize: '1rem', flexShrink: 0, touchAction: 'none' }}>⠿</div>
-
-      {/* Index + timestamp */}
-      <div style={{ flexShrink: 0, textAlign: 'right', minWidth: 52 }}>
-        <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>#{index + 1}</div>
-        <div style={{ fontSize: '0.75rem', color: 'var(--accent2)', fontVariantNumeric: 'tabular-nums' }}>{formatTimestamp(cumSecs)}</div>
+      <div
+        {...attributes}
+        {...listeners}
+        style={{ cursor: 'grab', color: 'var(--text-muted)', fontSize: '0.85rem', textAlign: 'center', touchAction: 'none', userSelect: 'none' }}
+        title={formatTimestamp(cumSecs)}
+      >
+        ⠿
       </div>
 
-      {/* Main content */}
-      <div style={{ flex: 1, minWidth: 0 }}>
-        {isSong && (
-          <>
-            <div style={{ fontWeight: 500, fontSize: '0.88rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-              {item.title}
-              {item.artist && <span style={{ color: 'var(--text-dim)', fontWeight: 400, marginLeft: 6 }}>— {item.artist}</span>}
-            </div>
-            <div style={{ display: 'flex', gap: 5, marginTop: 4, flexWrap: 'wrap' }}>
-              {item.isDanish && <span style={tagStyle('var(--green)')}>🇩🇰 DK</span>}
-              {item.isP6Beat && <span style={tagStyle('var(--blue)')}>P6</span>}
-              {item.isGuest && <span style={tagStyle('var(--guest)')}>Guest</span>}
-              {item.diskoteketCleared
-                ? <span style={tagStyle('var(--green)')}>✓ cleared</span>
-                : <span style={tagStyle('var(--red)')}>⚠ check diskoteket</span>}
-              {item.notes && <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>{item.notes}</span>}
-            </div>
-          </>
-        )}
-        {isSpeak && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span style={{ color: speakOverMax ? 'var(--red)' : 'var(--accent)', fontSize: '0.85rem' }}>
-              🎙 Speak
-            </span>
-            {speakOverMax && <span style={{ fontSize: '0.72rem', color: 'var(--red)' }}>over 3:30 limit</span>}
-            {!speakOverMax && speakOverSolo && <span style={{ fontSize: '0.72rem', color: 'var(--yellow)' }}>over 2:00 solo limit</span>}
-            {item.notes && <span style={{ fontSize: '0.78rem', color: 'var(--text-dim)', fontStyle: 'italic' }}>{item.notes}</span>}
-          </div>
-        )}
-      </div>
+      {/* Segment */}
+      <select
+        value={segment}
+        onChange={e => {
+          update('segment', e.target.value);
+          update('isGuest', e.target.value === 'guest');
+        }}
+        style={{ ...inputStyle }}
+      >
+        {SEGMENT_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+      </select>
+
+      {/* Title / Artist or Notes */}
+      <input
+        value={titleArtist}
+        onChange={e => setTitleArtist(e.target.value)}
+        onBlur={handleTitleBlur}
+        placeholder={isSong ? 'Titel — Artist' : 'Speak emne...'}
+        style={{ ...inputStyle }}
+      />
 
       {/* Duration */}
-      <div style={{ flexShrink: 0, fontVariantNumeric: 'tabular-nums', fontSize: '0.85rem', color: 'var(--text-dim)' }}>
-        {formatDuration(item.duration)}
+      <input
+        value={durStr}
+        onChange={e => setDurStr(e.target.value)}
+        onBlur={handleDurBlur}
+        onKeyDown={e => e.key === 'Enter' && e.target.blur()}
+        placeholder="3:24"
+        style={{ ...inputStyle, textAlign: 'center' }}
+      />
+
+      {/* Type */}
+      <select
+        value={item.type}
+        onChange={e => update('type', e.target.value)}
+        style={{ ...inputStyle }}
+      >
+        {TYPE_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+      </select>
+
+      {/* Danish */}
+      <div style={{ textAlign: 'center' }}>
+        <input
+          type="checkbox"
+          checked={!!item.isDanish}
+          onChange={e => update('isDanish', e.target.checked)}
+          disabled={item.type === ITEM_TYPES.SPEAK}
+          style={{ width: 15, height: 15, accentColor: 'var(--accent2)', cursor: 'pointer' }}
+        />
       </div>
 
-      {/* Actions */}
-      <div style={{ display: 'flex', gap: 4, flexShrink: 0 }}>
-        <button onClick={startEdit} style={{ padding: '3px 8px', background: 'var(--surface3)', color: 'var(--text-dim)', borderRadius: 4, fontSize: '0.75rem' }}>Edit</button>
-        <button onClick={() => onRemove(item.id)} style={{ padding: '3px 8px', background: 'transparent', color: 'var(--text-muted)', borderRadius: 4, fontSize: '0.75rem', border: '1px solid var(--border)' }}>✕</button>
+      {/* P6 */}
+      <div style={{ textAlign: 'center' }}>
+        <input
+          type="checkbox"
+          checked={!!item.isP6Beat}
+          onChange={e => update('isP6Beat', e.target.checked)}
+          disabled={item.type === ITEM_TYPES.SPEAK}
+          style={{ width: 15, height: 15, accentColor: 'var(--accent2)', cursor: 'pointer' }}
+        />
       </div>
+
+      {/* Delete */}
+      <button
+        onClick={() => onRemove(item.id)}
+        style={{
+          background: 'transparent', color: 'var(--text-muted)',
+          padding: '3px 7px', borderRadius: 4, fontSize: '0.8rem',
+          border: '1px solid transparent',
+        }}
+        onMouseEnter={e => { e.target.style.borderColor = 'var(--border)'; e.target.style.color = 'var(--red)'; }}
+        onMouseLeave={e => { e.target.style.borderColor = 'transparent'; e.target.style.color = 'var(--text-muted)'; }}
+      >
+        ×
+      </button>
     </div>
   );
 }
