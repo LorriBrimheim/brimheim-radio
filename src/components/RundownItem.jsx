@@ -27,7 +27,6 @@ export default function RundownItem({ item, index, onRemove, onUpdate, cumSecs }
   const isSong = item.type === ITEM_TYPES.SONG;
   const isSpeakOver = item.type === ITEM_TYPES.SPEAK && item.duration > MAX_SPEAK;
 
-  // Local state for controlled inputs
   const [durStr, setDurStr] = useState(item.duration > 0 ? formatDuration(item.duration) : '');
   const [titleArtist, setTitleArtist] = useState(
     isSong
@@ -35,7 +34,6 @@ export default function RundownItem({ item, index, onRemove, onUpdate, cumSecs }
       : (item.notes || '')
   );
 
-  // Sync when type changes
   useEffect(() => {
     setTitleArtist(
       item.type === ITEM_TYPES.SONG
@@ -44,7 +42,6 @@ export default function RundownItem({ item, index, onRemove, onUpdate, cumSecs }
     );
   }, [item.type]);
 
-  // Sync duration when item changes from outside (e.g. drag reorder)
   useEffect(() => {
     setDurStr(item.duration > 0 ? formatDuration(item.duration) : '');
   }, [item.id]);
@@ -66,11 +63,9 @@ export default function RundownItem({ item, index, onRemove, onUpdate, cumSecs }
     setDurStr(secs > 0 ? formatDuration(secs) : '');
   };
 
-  const formatTimestamp = (secs) => {
-    const m = Math.floor(secs / 60);
-    const s = secs % 60;
-    return `${m}:${s.toString().padStart(2, '0')}`;
-  };
+  // Diskoteket indicator — only relevant for songs
+  const diskColor = item.diskoteketCleared ? 'var(--green)' : 'var(--red)';
+  const diskLabel = item.diskoteketCleared ? '✓' : '⚠';
 
   return (
     <div
@@ -80,10 +75,10 @@ export default function RundownItem({ item, index, onRemove, onUpdate, cumSecs }
         transition,
         opacity: isDragging ? 0.4 : 1,
         display: 'grid',
-        gridTemplateColumns: '20px 100px 1fr 72px 72px 48px 36px 32px',
-        gap: 6,
+        gridTemplateColumns: '20px 100px 1fr 72px 72px 46px 34px 38px 32px',
+        gap: 5,
         alignItems: 'center',
-        padding: '5px 10px',
+        padding: '5px 8px',
         marginBottom: 4,
         background: 'var(--surface)',
         border: `1px solid ${isSpeakOver ? 'var(--red)' : 'var(--border)'}`,
@@ -95,8 +90,8 @@ export default function RundownItem({ item, index, onRemove, onUpdate, cumSecs }
       <div
         {...attributes}
         {...listeners}
+        title={`${Math.floor(cumSecs / 60)}:${String(cumSecs % 60).padStart(2, '0')}`}
         style={{ cursor: 'grab', color: 'var(--text-muted)', fontSize: '0.85rem', textAlign: 'center', touchAction: 'none', userSelect: 'none' }}
-        title={formatTimestamp(cumSecs)}
       >
         ⠿
       </div>
@@ -108,7 +103,7 @@ export default function RundownItem({ item, index, onRemove, onUpdate, cumSecs }
           update('segment', e.target.value);
           update('isGuest', e.target.value === 'guest');
         }}
-        style={{ ...inputStyle }}
+        style={inputStyle}
       >
         {SEGMENT_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
       </select>
@@ -119,7 +114,7 @@ export default function RundownItem({ item, index, onRemove, onUpdate, cumSecs }
         onChange={e => setTitleArtist(e.target.value)}
         onBlur={handleTitleBlur}
         placeholder={isSong ? 'Titel — Artist' : 'Speak emne...'}
-        style={{ ...inputStyle }}
+        style={inputStyle}
       />
 
       {/* Duration */}
@@ -136,7 +131,7 @@ export default function RundownItem({ item, index, onRemove, onUpdate, cumSecs }
       <select
         value={item.type}
         onChange={e => update('type', e.target.value)}
-        style={{ ...inputStyle }}
+        style={inputStyle}
       >
         {TYPE_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
       </select>
@@ -147,8 +142,8 @@ export default function RundownItem({ item, index, onRemove, onUpdate, cumSecs }
           type="checkbox"
           checked={!!item.isDanish}
           onChange={e => update('isDanish', e.target.checked)}
-          disabled={item.type === ITEM_TYPES.SPEAK}
-          style={{ width: 15, height: 15, accentColor: 'var(--accent2)', cursor: 'pointer' }}
+          disabled={!isSong}
+          style={{ width: 15, height: 15, accentColor: 'var(--accent2)', cursor: isSong ? 'pointer' : 'default' }}
         />
       </div>
 
@@ -158,9 +153,34 @@ export default function RundownItem({ item, index, onRemove, onUpdate, cumSecs }
           type="checkbox"
           checked={!!item.isP6Beat}
           onChange={e => update('isP6Beat', e.target.checked)}
-          disabled={item.type === ITEM_TYPES.SPEAK}
-          style={{ width: 15, height: 15, accentColor: 'var(--accent2)', cursor: 'pointer' }}
+          disabled={!isSong}
+          style={{ width: 15, height: 15, accentColor: 'var(--accent2)', cursor: isSong ? 'pointer' : 'default' }}
         />
+      </div>
+
+      {/* Diskoteket clearance */}
+      <div style={{ textAlign: 'center' }}>
+        {isSong ? (
+          <button
+            onClick={() => update('diskoteketCleared', !item.diskoteketCleared)}
+            title={item.diskoteketCleared ? 'Cleared in Diskoteket — click to unmark' : 'Not cleared in Diskoteket — click to mark cleared'}
+            style={{
+              background: 'transparent',
+              color: diskColor,
+              fontSize: '0.8rem',
+              fontWeight: 700,
+              padding: '2px 4px',
+              borderRadius: 3,
+              border: `1px solid ${diskColor}`,
+              cursor: 'pointer',
+              lineHeight: 1,
+            }}
+          >
+            {diskLabel}
+          </button>
+        ) : (
+          <span style={{ color: 'var(--text-muted)', fontSize: '0.7rem' }}>—</span>
+        )}
       </div>
 
       {/* Delete */}
@@ -168,11 +188,11 @@ export default function RundownItem({ item, index, onRemove, onUpdate, cumSecs }
         onClick={() => onRemove(item.id)}
         style={{
           background: 'transparent', color: 'var(--text-muted)',
-          padding: '3px 7px', borderRadius: 4, fontSize: '0.8rem',
+          padding: '3px 6px', borderRadius: 4, fontSize: '0.8rem',
           border: '1px solid transparent',
         }}
-        onMouseEnter={e => { e.target.style.borderColor = 'var(--border)'; e.target.style.color = 'var(--red)'; }}
-        onMouseLeave={e => { e.target.style.borderColor = 'transparent'; e.target.style.color = 'var(--text-muted)'; }}
+        onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--red)'; }}
+        onMouseLeave={e => { e.currentTarget.style.borderColor = 'transparent'; e.currentTarget.style.color = 'var(--text-muted)'; }}
       >
         ×
       </button>
