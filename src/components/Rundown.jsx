@@ -1,31 +1,30 @@
 import React, { useState } from 'react';
-import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragOverlay } from '@dnd-kit/core';
+import { DndContext, closestCorners, KeyboardSensor, PointerSensor, useSensor, useSensors, DragOverlay } from '@dnd-kit/core';
 import { SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy, arrayMove } from '@dnd-kit/sortable';
-import { restrictToVerticalAxis } from '@dnd-kit/modifiers';
 import RundownItem from './RundownItem';
 import { HOUR1_END, NEWS_DURATION, ITEM_TYPES, formatDuration, generateId } from '../utils';
 
 const HourHeader = ({ label, usedSecs }) => {
-  const max = 55 * 60;
-  const remaining = max - usedSecs;
+  const remaining = 55 * 60 - usedSecs;
   const over = remaining < 0;
   const tight = !over && remaining < 5 * 60;
-  const timeColor = over ? 'var(--red)' : tight ? 'var(--yellow)' : 'var(--text-muted)';
+  const timeColor = over ? 'var(--red)' : tight ? 'var(--yellow)' : 'var(--green)';
   return (
     <div style={{
-      display: 'flex', alignItems: 'baseline', gap: 8,
-      padding: '6px 0', marginBottom: 8, marginTop: 4,
-      borderBottom: '1px solid var(--border)',
+      display: 'flex', alignItems: 'center', gap: 8,
+      padding: '8px 14px',
+      background: 'var(--surface2)',
+      border: '1px solid var(--border)',
+      borderRadius: 6,
+      marginBottom: 8,
     }}>
-      <span style={{ fontFamily: 'Fraunces, serif', fontWeight: 300, fontSize: '1rem', color: 'var(--text)' }}>
+      <span style={{ fontFamily: 'Fraunces, serif', fontWeight: 400, fontSize: '0.95rem', color: 'var(--text)' }}>
         {label}
       </span>
-      <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Time used</span>
-      <span style={{ marginLeft: 'auto', fontSize: '0.75rem', fontVariantNumeric: 'tabular-nums', color: timeColor }}>
-        {over
-          ? `${formatDuration(Math.abs(remaining))} over`
-          : `${formatDuration(remaining)} left`}
-        <span style={{ color: 'var(--text-muted)' }}> · {formatDuration(usedSecs)} / 55:00</span>
+      <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginLeft: 2 }}>Time used</span>
+      <span style={{ marginLeft: 'auto', fontSize: '0.78rem', fontVariantNumeric: 'tabular-nums', color: timeColor, fontWeight: 500 }}>
+        {over ? `${formatDuration(Math.abs(remaining))} OVER` : `${formatDuration(remaining)} left`}
+        <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}> · {formatDuration(usedSecs)} / 55:00</span>
       </span>
     </div>
   );
@@ -34,13 +33,13 @@ const HourHeader = ({ label, usedSecs }) => {
 const TableHeader = () => (
   <div style={{
     display: 'grid',
-    gridTemplateColumns: '20px 100px 1fr 80px 72px 46px 34px 38px 32px',
+    gridTemplateColumns: '16px 82px 1fr 78px 70px 44px 32px 36px 28px',
     gap: 5,
-    padding: '0 8px 5px',
-    marginBottom: 4,
+    padding: '0 8px 4px 8px',
+    marginBottom: 3,
   }}>
     {['', 'Segment', 'Title / Artist', 'Duration', 'Type', 'Danish', 'P6', 'Disk.', ''].map((col, i) => (
-      <div key={i} style={{ fontSize: '0.62rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+      <div key={i} style={{ fontSize: '0.65rem', color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 500 }}>
         {col}
       </div>
     ))}
@@ -50,19 +49,16 @@ const TableHeader = () => (
 const NewsRow = ({ clockTime }) => (
   <div style={{
     display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-    padding: '10px 14px', margin: '14px 0',
+    padding: '9px 14px',
     background: 'var(--surface2)',
     border: '1px solid var(--border)',
     borderRadius: 6,
-    pointerEvents: 'none', // doesn't block drag drop
   }}>
     <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
       <span style={{
         background: 'var(--accent2)', color: '#0e0e0e',
         fontSize: '0.68rem', fontWeight: 700, padding: '2px 9px', borderRadius: 20,
-      }}>
-        Nyheder
-      </span>
+      }}>Nyheder</span>
       <span style={{ fontSize: '0.8rem', color: 'var(--text-dim)' }}>Nyheder — 5:00 min (fast)</span>
     </div>
     <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontVariantNumeric: 'tabular-nums' }}>
@@ -71,32 +67,19 @@ const NewsRow = ({ clockTime }) => (
   </div>
 );
 
-// Thin drop zone rendered between hours during drag — makes cross-hour dropping obvious
-const CrossHourDropZone = ({ isDragging }) => (
-  isDragging ? (
-    <div style={{
-      height: 6,
-      background: 'var(--accent2)',
-      borderRadius: 3,
-      opacity: 0.25,
-      margin: '4px 0',
-    }} />
-  ) : null
-);
-
 const AddItemButton = ({ onClick }) => (
   <button
     onClick={onClick}
     style={{
-      width: '100%', marginTop: 6, padding: '8px',
-      background: 'transparent',
+      width: '100%', marginTop: 5, padding: '7px',
+      background: 'var(--surface2)',
       border: '1px dashed var(--border)',
       borderRadius: 6,
-      color: 'var(--text-muted)',
+      color: 'var(--text-dim)',
       fontSize: '0.8rem',
     }}
-    onMouseEnter={e => { e.currentTarget.style.color = 'var(--text-dim)'; e.currentTarget.style.borderColor = 'var(--text-muted)'; }}
-    onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-muted)'; e.currentTarget.style.borderColor = 'var(--border)'; }}
+    onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--accent2)'; e.currentTarget.style.color = 'var(--accent2)'; }}
+    onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--text-dim)'; }}
   >
     + Add item
   </button>
@@ -106,13 +89,12 @@ export default function Rundown({ items, onReorder, onRemove, onUpdate, onAdd })
   const [activeItem, setActiveItem] = useState(null);
 
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   );
 
   const handleDragStart = (event) => {
-    const found = items.find(i => i.id === event.active.id);
-    setActiveItem(found || null);
+    setActiveItem(items.find(i => i.id === event.active.id) || null);
   };
 
   const handleDragEnd = (event) => {
@@ -125,7 +107,9 @@ export default function Rundown({ items, onReorder, onRemove, onUpdate, onAdd })
     }
   };
 
-  // Split items into hour buckets by cumulative programming time
+  const isDragging = !!activeItem;
+
+  // Split items into hour buckets
   let progTemp = 0;
   let clockTemp = 0;
   const hour1Rows = [];
@@ -133,29 +117,21 @@ export default function Rundown({ items, onReorder, onRemove, onUpdate, onAdd })
 
   items.forEach((item, index) => {
     const row = { item, index, cumSecs: clockTemp };
-    if (progTemp < HOUR1_END) {
-      hour1Rows.push(row);
-    } else {
-      hour2Rows.push(row);
-    }
+    if (progTemp < HOUR1_END) hour1Rows.push(row);
+    else hour2Rows.push(row);
     progTemp += item.duration || 0;
     clockTemp += item.duration || 0;
   });
 
   const h1Duration = hour1Rows.reduce((s, r) => s + (r.item.duration || 0), 0);
   const h2Duration = hour2Rows.reduce((s, r) => s + (r.item.duration || 0), 0);
+  hour2Rows.forEach(r => { r.cumSecs += NEWS_DURATION; });
+
   const news1ClockTime = h1Duration;
   const news2ClockTime = h1Duration + NEWS_DURATION + h2Duration;
 
-  // Hour 2 timestamps include the news break offset
-  hour2Rows.forEach(r => { r.cumSecs += NEWS_DURATION; });
-
-  const isDragging = !!activeItem;
-
   const blankItem = () => ({
-    id: generateId(),
-    type: ITEM_TYPES.SONG,
-    segment: 'solo',
+    id: generateId(), type: ITEM_TYPES.SONG, segment: 'solo',
     title: '', artist: '', duration: 0,
     isDanish: false, isP6Beat: false, isGuest: false,
     diskoteketCleared: false, notes: '',
@@ -164,8 +140,7 @@ export default function Rundown({ items, onReorder, onRemove, onUpdate, onAdd })
   return (
     <DndContext
       sensors={sensors}
-      collisionDetection={closestCenter}
-      modifiers={[restrictToVerticalAxis]}
+      collisionDetection={closestCorners}
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
     >
@@ -174,72 +149,97 @@ export default function Rundown({ items, onReorder, onRemove, onUpdate, onAdd })
         {/* ── Hour 1 ── */}
         <HourHeader label="Hour 1" usedSecs={h1Duration} />
         <TableHeader />
-        {hour1Rows.length === 0 && (
-          <div style={{ padding: '14px 8px', color: 'var(--text-muted)', fontSize: '0.8rem', fontStyle: 'italic' }}>
-            No items yet — add a song or drag one down from Hour 2
+        {hour1Rows.length === 0 && !isDragging && (
+          <div style={{ padding: '12px 8px', color: 'var(--text-dim)', fontSize: '0.8rem', fontStyle: 'italic' }}>
+            No items yet
           </div>
         )}
         {hour1Rows.map(row => (
-          <RundownItem
-            key={row.item.id}
-            item={row.item}
-            index={row.index}
-            cumSecs={row.cumSecs}
-            isInHour1={true}
-            onRemove={onRemove}
-            onUpdate={onUpdate}
-          />
+          <RundownItem key={row.item.id} item={row.item} index={row.index}
+            cumSecs={row.cumSecs} isInHour1={true} onRemove={onRemove} onUpdate={onUpdate} />
         ))}
-        <AddItemButton onClick={() => onAdd(blankItem(), hour1Rows.length)} />
 
-        {/* Cross-hour drag zone + news break */}
-        <CrossHourDropZone isDragging={isDragging} />
-        <NewsRow clockTime={news1ClockTime} />
-        <CrossHourDropZone isDragging={isDragging} />
+        {/* Between-hours zone — collapses when dragging so cross-hour drop is easy */}
+        <div style={{
+          transition: 'margin 0.15s',
+          margin: isDragging ? '4px 0' : '6px 0',
+        }}>
+          {!isDragging && <AddItemButton onClick={() => onAdd(blankItem(), hour1Rows.length)} />}
 
-        {/* ── Hour 2 ── */}
-        <HourHeader label="Hour 2" usedSecs={h2Duration} />
-        <TableHeader />
-        {hour2Rows.length === 0 && (
-          <div style={{ padding: '14px 8px', color: 'var(--text-muted)', fontSize: '0.8rem', fontStyle: 'italic' }}>
-            No items yet — add a song or drag one up from Hour 1
+          <div style={{
+            margin: isDragging ? '4px 0' : '12px 0',
+            transition: 'margin 0.15s',
+          }}>
+            {isDragging ? (
+              // Compact drop-zone hint while dragging
+              <div style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                padding: '6px',
+                background: 'rgba(201,169,110,0.08)',
+                border: '1px dashed var(--accent2)',
+                borderRadius: 6,
+                fontSize: '0.72rem',
+                color: 'var(--accent2)',
+                opacity: 0.7,
+              }}>
+                ↕ drag across to change hour
+              </div>
+            ) : (
+              <NewsRow clockTime={news1ClockTime} />
+            )}
+          </div>
+
+          {!isDragging && (
+            <>
+              <HourHeader label="Hour 2" usedSecs={h2Duration} />
+              <TableHeader />
+            </>
+          )}
+        </div>
+
+        {isDragging && (
+          // Show minimal Hour 2 label while dragging
+          <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', padding: '2px 4px', marginBottom: 4 }}>
+            Hour 2
+          </div>
+        )}
+
+        {hour2Rows.length === 0 && !isDragging && (
+          <div style={{ padding: '12px 8px', color: 'var(--text-dim)', fontSize: '0.8rem', fontStyle: 'italic' }}>
+            No items yet — drag one down from Hour 1 or add below
           </div>
         )}
         {hour2Rows.map(row => (
-          <RundownItem
-            key={row.item.id}
-            item={row.item}
-            index={row.index}
-            cumSecs={row.cumSecs}
-            isInHour1={false}
-            onRemove={onRemove}
-            onUpdate={onUpdate}
-          />
+          <RundownItem key={row.item.id} item={row.item} index={row.index}
+            cumSecs={row.cumSecs} isInHour1={false} onRemove={onRemove} onUpdate={onUpdate} />
         ))}
-        <AddItemButton onClick={() => onAdd(blankItem(), null)} />
 
-        <NewsRow clockTime={news2ClockTime} />
+        {!isDragging && <AddItemButton onClick={() => onAdd(blankItem(), null)} />}
+
+        {!isDragging && (
+          <div style={{ margin: '12px 0' }}>
+            <NewsRow clockTime={news2ClockTime} />
+          </div>
+        )}
 
       </SortableContext>
 
-      {/* Drag overlay — shows a ghost of the item being dragged */}
-      <DragOverlay>
+      {/* Drag overlay — ghost card following cursor */}
+      <DragOverlay dropAnimation={null}>
         {activeItem ? (
           <div style={{
-            padding: '7px 12px',
+            padding: '7px 14px',
             background: 'var(--surface2)',
             border: '1px solid var(--accent2)',
             borderRadius: 6,
             fontSize: '0.82rem',
             color: 'var(--text)',
-            boxShadow: '0 8px 24px rgba(0,0,0,0.5)',
-            opacity: 0.95,
-            display: 'flex',
-            alignItems: 'center',
-            gap: 10,
+            boxShadow: '0 8px 28px rgba(0,0,0,0.6)',
+            display: 'flex', alignItems: 'center', gap: 10,
+            cursor: 'grabbing',
           }}>
-            <span style={{ color: 'var(--text-muted)' }}>⠿</span>
-            <span style={{ fontWeight: 500 }}>
+            <span style={{ color: 'var(--accent2)' }}>⠿</span>
+            <span>
               {activeItem.type === ITEM_TYPES.SONG
                 ? `${activeItem.title || 'Untitled'}${activeItem.artist ? ' — ' + activeItem.artist : ''}`
                 : `Speak${activeItem.notes ? ': ' + activeItem.notes : ''}`}
