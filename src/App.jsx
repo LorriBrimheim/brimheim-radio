@@ -14,20 +14,21 @@ const defaultEpisode = () => ({
   createdAt: new Date().toISOString(),
 });
 
-const calcBlockSecs = (items) => {
+// Migrate old episodes: assign explicit hour field based on cumulative time
+const migrateEpisode = (ep) => {
   let cumSecs = 0;
-  let b1 = 0, b2 = 0;
-  items.forEach(item => {
-    const dur = item.duration || 0;
-    if (cumSecs < HOUR1_END) {
-      const inB1 = Math.min(dur, HOUR1_END - cumSecs);
-      b1 += inB1;
-      b2 += dur - inB1;
-    } else {
-      b2 += dur;
-    }
-    cumSecs += dur;
+  const items = ep.items.map(item => {
+    if (item.hour !== undefined) return item;
+    const hour = cumSecs >= HOUR1_END ? 2 : 1;
+    cumSecs += item.duration || 0;
+    return { ...item, hour };
   });
+  return { ...ep, items };
+};
+
+const calcBlockSecs = (items) => {
+  const b1 = items.filter(i => (i.hour || 1) === 1).reduce((s, i) => s + (i.duration || 0), 0);
+  const b2 = items.filter(i => (i.hour || 1) === 2).reduce((s, i) => s + (i.duration || 0), 0);
   return [b1, b2];
 };
 
@@ -35,7 +36,8 @@ export default function App() {
   const [episodes, setEpisodes] = useState(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
-      return saved ? JSON.parse(saved) : [];
+      const parsed = saved ? JSON.parse(saved) : [];
+      return parsed.map(migrateEpisode);
     } catch { return []; }
   });
   const [activeId, setActiveId] = useState(() => {
@@ -72,12 +74,16 @@ export default function App() {
     if (activeId === id) setActiveId(episodes.find(e => e.id !== id)?.id || null);
   };
 
-  const addItem = (item, insertAt = null) => {
+  const addItem = (item) => {
     if (!activeId) return;
     updateEpisode(activeId, e => {
       const next = [...e.items];
-      if (insertAt !== null && insertAt <= next.length) {
-        next.splice(insertAt, 0, item);
+      const hour = item.hour || 1;
+      if (hour === 1) {
+        // Insert after last hour-1 item
+        let lastH1Idx = -1;
+        next.forEach((it, idx) => { if ((it.hour || 1) === 1) lastH1Idx = idx; });
+        next.splice(lastH1Idx + 1, 0, item);
       } else {
         next.push(item);
       }
@@ -151,6 +157,7 @@ export default function App() {
               padding: '9px 10px', borderRadius: 5, marginBottom: 3, cursor: 'pointer',
               background: activeId === ep.id ? 'var(--surface3)' : 'transparent',
               border: `1px solid ${activeId === ep.id ? 'var(--border)' : 'transparent'}`,
+              borderLeft: activeId === ep.id ? '3px solid var(--accent2)' : '3px solid transparent',
               display: 'flex', justifyContent: 'space-between', alignItems: 'center',
             }}>
               <div style={{ minWidth: 0 }}>
@@ -194,7 +201,7 @@ export default function App() {
               </div>
             </>
           ) : (
-            <span style={{ color: 'var(--text-muted)', fontStyle: 'italic', fontSize: '0.85rem' }}>Select or create an episode</span>
+            <span style={{ color: 'var(--text-dim)', fontStyle: 'italic', fontSize: '0.85rem' }}>Select or create an episode</span>
           )}
         </div>
 
