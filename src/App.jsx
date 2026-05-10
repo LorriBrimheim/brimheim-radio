@@ -114,8 +114,8 @@ export default function App() {
 
       {/* Sidebar */}
       <div style={{
-        width: sidebarOpen ? 240 : 0,
-        minWidth: sidebarOpen ? 240 : 0,
+        width: sidebarOpen ? 185 : 0,
+        minWidth: sidebarOpen ? 185 : 0,
         overflow: 'hidden',
         background: 'var(--surface)',
         borderRight: '1px solid var(--border)',
