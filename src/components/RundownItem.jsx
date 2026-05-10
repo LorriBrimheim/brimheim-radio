@@ -160,7 +160,7 @@ export default function RundownItem({ item, index, onRemove, onUpdate, cumSecs }
     >
       <div style={{
         display: 'grid',
-        gridTemplateColumns: '20px 100px 1fr 80px 72px 46px 34px 38px 32px',
+        gridTemplateColumns: '16px 82px 1fr 78px 70px 44px 32px 36px 28px',
         gap: 5,
         alignItems: 'center',
         padding: '5px 8px',
