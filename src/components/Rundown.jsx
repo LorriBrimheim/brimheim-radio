@@ -1,9 +1,9 @@
-import React from 'react';
-import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
+import React, { useState } from 'react';
+import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragOverlay } from '@dnd-kit/core';
 import { SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy, arrayMove } from '@dnd-kit/sortable';
 import { restrictToVerticalAxis } from '@dnd-kit/modifiers';
 import RundownItem from './RundownItem';
-import { HOUR1_END, HOUR2_END, NEWS_DURATION, ITEM_TYPES, formatDuration, generateId } from '../utils';
+import { HOUR1_END, NEWS_DURATION, ITEM_TYPES, formatDuration, generateId } from '../utils';
 
 const HourHeader = ({ label, usedSecs }) => {
   const max = 55 * 60;
@@ -24,9 +24,8 @@ const HourHeader = ({ label, usedSecs }) => {
       <span style={{ marginLeft: 'auto', fontSize: '0.75rem', fontVariantNumeric: 'tabular-nums', color: timeColor }}>
         {over
           ? `${formatDuration(Math.abs(remaining))} over`
-          : `${formatDuration(remaining)} left`
-        }
-        <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}> · {formatDuration(usedSecs)} / 55:00</span>
+          : `${formatDuration(remaining)} left`}
+        <span style={{ color: 'var(--text-muted)' }}> · {formatDuration(usedSecs)} / 55:00</span>
       </span>
     </div>
   );
@@ -35,7 +34,7 @@ const HourHeader = ({ label, usedSecs }) => {
 const TableHeader = () => (
   <div style={{
     display: 'grid',
-    gridTemplateColumns: '20px 100px 1fr 72px 72px 46px 34px 38px 32px',
+    gridTemplateColumns: '20px 100px 1fr 80px 72px 46px 34px 38px 32px',
     gap: 5,
     padding: '0 8px 5px',
     marginBottom: 4,
@@ -55,23 +54,34 @@ const NewsRow = ({ clockTime }) => (
     background: 'var(--surface2)',
     border: '1px solid var(--border)',
     borderRadius: 6,
+    pointerEvents: 'none', // doesn't block drag drop
   }}>
     <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
       <span style={{
         background: 'var(--accent2)', color: '#0e0e0e',
         fontSize: '0.68rem', fontWeight: 700, padding: '2px 9px', borderRadius: 20,
-        letterSpacing: '0.02em',
       }}>
         Nyheder
       </span>
-      <span style={{ fontSize: '0.8rem', color: 'var(--text-dim)' }}>
-        Nyheder — 5:00 min (fast)
-      </span>
+      <span style={{ fontSize: '0.8rem', color: 'var(--text-dim)' }}>Nyheder — 5:00 min (fast)</span>
     </div>
     <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontVariantNumeric: 'tabular-nums' }}>
       {formatDuration(clockTime)} → {formatDuration(clockTime + NEWS_DURATION)}
     </span>
   </div>
+);
+
+// Thin drop zone rendered between hours during drag — makes cross-hour dropping obvious
+const CrossHourDropZone = ({ isDragging }) => (
+  isDragging ? (
+    <div style={{
+      height: 6,
+      background: 'var(--accent2)',
+      borderRadius: 3,
+      opacity: 0.25,
+      margin: '4px 0',
+    }} />
+  ) : null
 );
 
 const AddItemButton = ({ onClick }) => (
@@ -93,21 +103,29 @@ const AddItemButton = ({ onClick }) => (
 );
 
 export default function Rundown({ items, onReorder, onRemove, onUpdate, onAdd }) {
+  const [activeItem, setActiveItem] = useState(null);
+
   const sensors = useSensors(
-    useSensor(PointerSensor),
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   );
 
+  const handleDragStart = (event) => {
+    const found = items.find(i => i.id === event.active.id);
+    setActiveItem(found || null);
+  };
+
   const handleDragEnd = (event) => {
+    setActiveItem(null);
     const { active, over } = event;
-    if (active.id !== over?.id) {
+    if (over && active.id !== over.id) {
       const oldIdx = items.findIndex(i => i.id === active.id);
       const newIdx = items.findIndex(i => i.id === over.id);
       onReorder(arrayMove(items, oldIdx, newIdx));
     }
   };
 
-  // Split items into hour buckets by programming time
+  // Split items into hour buckets by cumulative programming time
   let progTemp = 0;
   let clockTemp = 0;
   const hour1Rows = [];
@@ -129,25 +147,28 @@ export default function Rundown({ items, onReorder, onRemove, onUpdate, onAdd })
   const news1ClockTime = h1Duration;
   const news2ClockTime = h1Duration + NEWS_DURATION + h2Duration;
 
-  // Add news break offset to hour 2 timestamps
+  // Hour 2 timestamps include the news break offset
   hour2Rows.forEach(r => { r.cumSecs += NEWS_DURATION; });
+
+  const isDragging = !!activeItem;
 
   const blankItem = () => ({
     id: generateId(),
     type: ITEM_TYPES.SONG,
     segment: 'solo',
-    title: '',
-    artist: '',
-    duration: 0,
-    isDanish: false,
-    isP6Beat: false,
-    isGuest: false,
-    diskoteketCleared: false,
-    notes: '',
+    title: '', artist: '', duration: 0,
+    isDanish: false, isP6Beat: false, isGuest: false,
+    diskoteketCleared: false, notes: '',
   });
 
   return (
-    <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd} modifiers={[restrictToVerticalAxis]}>
+    <DndContext
+      sensors={sensors}
+      collisionDetection={closestCenter}
+      modifiers={[restrictToVerticalAxis]}
+      onDragStart={handleDragStart}
+      onDragEnd={handleDragEnd}
+    >
       <SortableContext items={items.map(i => i.id)} strategy={verticalListSortingStrategy}>
 
         {/* ── Hour 1 ── */}
@@ -155,7 +176,7 @@ export default function Rundown({ items, onReorder, onRemove, onUpdate, onAdd })
         <TableHeader />
         {hour1Rows.length === 0 && (
           <div style={{ padding: '14px 8px', color: 'var(--text-muted)', fontSize: '0.8rem', fontStyle: 'italic' }}>
-            No items yet
+            No items yet — add a song or drag one down from Hour 2
           </div>
         )}
         {hour1Rows.map(row => (
@@ -171,15 +192,17 @@ export default function Rundown({ items, onReorder, onRemove, onUpdate, onAdd })
         ))}
         <AddItemButton onClick={() => onAdd(blankItem(), hour1Rows.length)} />
 
-        {/* ── News break 1 ── */}
+        {/* Cross-hour drag zone + news break */}
+        <CrossHourDropZone isDragging={isDragging} />
         <NewsRow clockTime={news1ClockTime} />
+        <CrossHourDropZone isDragging={isDragging} />
 
         {/* ── Hour 2 ── */}
         <HourHeader label="Hour 2" usedSecs={h2Duration} />
         <TableHeader />
         {hour2Rows.length === 0 && (
           <div style={{ padding: '14px 8px', color: 'var(--text-muted)', fontSize: '0.8rem', fontStyle: 'italic' }}>
-            No items yet
+            No items yet — add a song or drag one up from Hour 1
           </div>
         )}
         {hour2Rows.map(row => (
@@ -195,10 +218,40 @@ export default function Rundown({ items, onReorder, onRemove, onUpdate, onAdd })
         ))}
         <AddItemButton onClick={() => onAdd(blankItem(), null)} />
 
-        {/* ── News break 2 ── */}
         <NewsRow clockTime={news2ClockTime} />
 
       </SortableContext>
+
+      {/* Drag overlay — shows a ghost of the item being dragged */}
+      <DragOverlay>
+        {activeItem ? (
+          <div style={{
+            padding: '7px 12px',
+            background: 'var(--surface2)',
+            border: '1px solid var(--accent2)',
+            borderRadius: 6,
+            fontSize: '0.82rem',
+            color: 'var(--text)',
+            boxShadow: '0 8px 24px rgba(0,0,0,0.5)',
+            opacity: 0.95,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 10,
+          }}>
+            <span style={{ color: 'var(--text-muted)' }}>⠿</span>
+            <span style={{ fontWeight: 500 }}>
+              {activeItem.type === ITEM_TYPES.SONG
+                ? `${activeItem.title || 'Untitled'}${activeItem.artist ? ' — ' + activeItem.artist : ''}`
+                : `Speak${activeItem.notes ? ': ' + activeItem.notes : ''}`}
+            </span>
+            {activeItem.duration > 0 && (
+              <span style={{ color: 'var(--accent2)', marginLeft: 'auto', fontVariantNumeric: 'tabular-nums' }}>
+                {formatDuration(activeItem.duration)}
+              </span>
+            )}
+          </div>
+        ) : null}
+      </DragOverlay>
     </DndContext>
   );
 }
