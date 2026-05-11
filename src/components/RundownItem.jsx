@@ -11,18 +11,6 @@ function useDebounce(value, delay) {
   return deb;
 }
 
-const ToggleBadge = ({ label, active, color, onClick, disabled, title }) => (
-  <button onClick={disabled ? undefined : onClick} title={title} style={{
-    padding: '2px 6px', borderRadius: 3, fontSize: '0.6rem', fontWeight: 700, letterSpacing: '0.04em',
-    cursor: disabled ? 'default' : 'pointer',
-    background: active ? color : 'transparent',
-    color: active ? 'white' : disabled ? 'var(--border-light)' : 'var(--text-muted)',
-    border: `1px solid ${active ? color : disabled ? 'var(--border-light)' : 'var(--border)'}`,
-    transition: 'all 0.12s', minWidth: 26, textAlign: 'center',
-  }}>{label}</ToggleBadge>
-);
-
-// fix recursion — redefine as plain function
 function ToggleBadgeComp({ label, active, color, onClick, disabled, title }) {
   return (
     <button onClick={disabled ? undefined : onClick} title={title} style={{
