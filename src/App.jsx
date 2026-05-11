@@ -42,11 +42,22 @@ export default function App() {
   });
   const [showExportMenu, setShowExportMenu] = useState(false);
   const [exportMsg, setExportMsg] = useState('');
+  const [sidebarOpen, setSidebarOpen] = useState(() => {
+    try { return localStorage.getItem(STORAGE_KEY + '_sidebar') !== 'false'; } catch { return true; }
+  });
+  const [editingDate, setEditingDate] = useState(false);
 
   const activeEpisode = episodes.find(e => e.id === activeId) || null;
 
   useEffect(() => { localStorage.setItem(STORAGE_KEY, JSON.stringify(episodes)); }, [episodes]);
   useEffect(() => { if (activeId) localStorage.setItem(STORAGE_KEY + '_active', activeId); }, [activeId]);
+  useEffect(() => { localStorage.setItem(STORAGE_KEY + '_sidebar', String(sidebarOpen)); }, [sidebarOpen]);
+  useEffect(() => { setEditingDate(false); }, [activeId]);
+
+  const toDateInput = (iso) => {
+    try { const d = new Date(iso); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
+    catch { return ''; }
+  };
 
   const updateEpisode = useCallback((id, updater) => {
     setEpisodes(prev => prev.map(e => e.id === id ? { ...e, ...updater(e) } : e));
@@ -134,54 +145,63 @@ export default function App() {
     <div style={{ display:'flex', height:'100vh', overflow:'hidden' }}>
 
       {/* ── Sidebar ── */}
-      <div style={{ width:200, flexShrink:0, background:'var(--navy)', display:'flex', flexDirection:'column', borderRight:'1px solid var(--navy-border)' }}>
-        {/* Logo */}
-        <div style={{ padding:'16px 14px 12px', borderBottom:'1px solid var(--navy-border)', display:'flex', alignItems:'center', gap:10 }}>
-          <div style={{ width:32, height:32, background:'var(--orange)', borderRadius:6, display:'flex', alignItems:'center', justifyContent:'center', fontSize:'0.72rem', fontWeight:700, color:'white', letterSpacing:'0.03em', flexShrink:0 }}>BR</div>
-          <div>
-            <div style={{ fontSize:'0.78rem', fontWeight:700, color:'white', letterSpacing:'0.09em' }}>BRIMHEIM</div>
-            <div style={{ fontSize:'0.58rem', color:'var(--navy-muted)', letterSpacing:'0.07em' }}>RADIO CONSOLE</div>
-          </div>
-        </div>
+      <div style={{ width: sidebarOpen ? 160 : 44, flexShrink:0, background:'var(--navy)', display:'flex', flexDirection:'column', borderRight:'1px solid var(--navy-border)', transition:'width 0.18s ease', overflow:'hidden' }}>
 
-        {/* New episode */}
-        <div style={{ padding:'10px 12px 6px' }}>
-          <button onClick={createEpisode} style={{ width:'100%', padding:'8px', background:'var(--orange)', color:'white', borderRadius:5, fontSize:'0.75rem', fontWeight:700, letterSpacing:'0.06em' }}>
-            + NEW EPISODE
+        {/* Logo row */}
+        <div style={{ padding:'12px 8px', borderBottom:'1px solid var(--navy-border)', display:'flex', alignItems:'center', justifyContent:'space-between', flexShrink:0, minWidth: sidebarOpen ? 160 : 44 }}>
+          <div style={{ display:'flex', alignItems:'center', gap:8, minWidth:0 }}>
+            <div style={{ width:28, height:28, background:'var(--orange)', borderRadius:5, display:'flex', alignItems:'center', justifyContent:'center', fontSize:'0.68rem', fontWeight:700, color:'white', flexShrink:0 }}>BR</div>
+            {sidebarOpen && <div style={{ minWidth:0 }}>
+              <div style={{ fontSize:'0.72rem', fontWeight:700, color:'white', letterSpacing:'0.09em', whiteSpace:'nowrap' }}>BRIMHEIM</div>
+              <div style={{ fontSize:'0.52rem', color:'var(--navy-muted)', letterSpacing:'0.07em', whiteSpace:'nowrap' }}>RADIO CONSOLE</div>
+            </div>}
+          </div>
+          <button onClick={() => setSidebarOpen(o => !o)} title={sidebarOpen ? 'Collapse sidebar' : 'Expand sidebar'}
+            style={{ background:'transparent', color:'var(--navy-muted)', border:'none', fontSize:'0.9rem', padding:'2px 4px', lineHeight:1, cursor:'pointer', flexShrink:0 }}>
+            {sidebarOpen ? '‹' : '›'}
           </button>
         </div>
 
-        {/* Episodes */}
-        <div style={{ flex:1, overflow:'auto' }}>
-          <div style={{ padding:'8px 14px 4px', fontSize:'0.58rem', color:'var(--navy-muted)', letterSpacing:'0.1em', fontWeight:700 }}>EPISODES</div>
-          {episodes.length === 0 && (
-            <div style={{ color:'var(--navy-muted)', fontSize:'0.75rem', padding:'14px', textAlign:'center', fontStyle:'italic' }}>No episodes yet</div>
-          )}
-          {episodes.map(ep => (
-            <div key={ep.id} onClick={() => setActiveId(ep.id)} style={{
-              padding:'8px 12px 8px 14px', cursor:'pointer',
-              borderLeft:`3px solid ${activeId===ep.id?'var(--orange)':'transparent'}`,
-              background: activeId===ep.id ? 'rgba(255,255,255,0.07)' : 'transparent',
-              display:'flex', justifyContent:'space-between', alignItems:'flex-start',
-            }}>
-              <div style={{ minWidth:0 }}>
-                <div style={{ fontSize:'0.78rem', color: activeId===ep.id ? 'white' : 'var(--navy-text)', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis', fontWeight:500 }}>
-                  {ep.title || 'Untitled episode'}
-                </div>
-                <div style={{ fontSize:'0.6rem', color:'var(--navy-muted)', marginTop:2 }}>
-                  {fmtEpDate(ep.createdAt)} · {ep.items.length} ITEMS
-                </div>
-              </div>
-              <button onClick={e => { e.stopPropagation(); deleteEpisode(ep.id); }} style={{ background:'transparent', color:'var(--navy-muted)', fontSize:'0.72rem', border:'none', paddingLeft:6, flexShrink:0 }}>✕</button>
-            </div>
-          ))}
-        </div>
+        {sidebarOpen && <>
+          {/* New episode */}
+          <div style={{ padding:'8px 10px 5px', flexShrink:0 }}>
+            <button onClick={createEpisode} style={{ width:'100%', padding:'7px', background:'var(--orange)', color:'white', borderRadius:5, fontSize:'0.7rem', fontWeight:700, letterSpacing:'0.05em' }}>
+              + NEW EPISODE
+            </button>
+          </div>
 
-        {/* On Air */}
-        <div style={{ padding:'9px 14px', borderTop:'1px solid var(--navy-border)', fontSize:'0.63rem', color:'var(--navy-muted)', display:'flex', alignItems:'center', gap:6, letterSpacing:'0.05em' }}>
-          <span style={{ width:6, height:6, borderRadius:'50%', background:'var(--green)', display:'inline-block', flexShrink:0 }} />
-          ON AIR · {today} {nowHour}:00
-        </div>
+          {/* Episodes */}
+          <div style={{ flex:1, overflow:'auto' }}>
+            <div style={{ padding:'7px 12px 3px', fontSize:'0.55rem', color:'var(--navy-muted)', letterSpacing:'0.1em', fontWeight:700 }}>EPISODES</div>
+            {episodes.length === 0 && (
+              <div style={{ color:'var(--navy-muted)', fontSize:'0.72rem', padding:'12px', textAlign:'center', fontStyle:'italic' }}>No episodes yet</div>
+            )}
+            {episodes.map(ep => (
+              <div key={ep.id} onClick={() => setActiveId(ep.id)} style={{
+                padding:'7px 8px 7px 10px', cursor:'pointer',
+                borderLeft:`3px solid ${activeId===ep.id?'var(--orange)':'transparent'}`,
+                background: activeId===ep.id ? 'rgba(255,255,255,0.07)' : 'transparent',
+                display:'flex', justifyContent:'space-between', alignItems:'flex-start',
+              }}>
+                <div style={{ minWidth:0 }}>
+                  <div style={{ fontSize:'0.73rem', color: activeId===ep.id ? 'white' : 'var(--navy-text)', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis', fontWeight:500 }}>
+                    {ep.title || 'Untitled episode'}
+                  </div>
+                  <div style={{ fontSize:'0.57rem', color:'var(--navy-muted)', marginTop:1 }}>
+                    {fmtEpDate(ep.createdAt)} · {ep.items.length} items
+                  </div>
+                </div>
+                <button onClick={e => { e.stopPropagation(); deleteEpisode(ep.id); }} style={{ background:'transparent', color:'var(--navy-muted)', fontSize:'0.68rem', border:'none', paddingLeft:4, flexShrink:0 }}>✕</button>
+              </div>
+            ))}
+          </div>
+
+          {/* On Air */}
+          <div style={{ padding:'8px 12px', borderTop:'1px solid var(--navy-border)', fontSize:'0.6rem', color:'var(--navy-muted)', display:'flex', alignItems:'center', gap:5, letterSpacing:'0.05em', flexShrink:0 }}>
+            <span style={{ width:5, height:5, borderRadius:'50%', background:'var(--green)', display:'inline-block', flexShrink:0 }} />
+            ON AIR · {today} {nowHour}:00
+          </div>
+        </>}
       </div>
 
       {/* ── Main ── */}
@@ -192,9 +212,19 @@ export default function App() {
           {activeEpisode ? (
             <>
               <div style={{ display:'flex', alignItems:'center', gap:10, flex:1, minWidth:0 }}>
-                <span style={{ fontSize:'0.6rem', color:'var(--text-muted)', letterSpacing:'0.12em', fontWeight:700, flexShrink:0, background:'var(--surface)', border:'1px solid var(--border)', borderRadius:3, padding:'2px 6px' }}>
-                  EP · {fmtEpDate(activeEpisode.createdAt)}
-                </span>
+                {editingDate ? (
+                  <input type="date" autoFocus
+                    defaultValue={toDateInput(activeEpisode.createdAt)}
+                    onBlur={e => { if (e.target.value) { const p = e.target.value.split('-'); updateEpisode(activeId, () => ({ createdAt: new Date(+p[0], +p[1]-1, +p[2]).toISOString() })); } setEditingDate(false); }}
+                    onKeyDown={e => { if (e.key==='Escape'||e.key==='Enter') e.target.blur(); }}
+                    style={{ fontSize:'0.7rem', padding:'1px 6px', background:'var(--surface)', border:'1px solid var(--orange)', borderRadius:3, color:'var(--text)', flexShrink:0 }}
+                  />
+                ) : (
+                  <span onClick={() => setEditingDate(true)} title="Click to edit date"
+                    style={{ fontSize:'0.6rem', color:'var(--text-muted)', letterSpacing:'0.12em', fontWeight:700, flexShrink:0, background:'var(--surface)', border:'1px solid var(--border)', borderRadius:3, padding:'2px 6px', cursor:'pointer' }}>
+                    EP · {fmtEpDate(activeEpisode.createdAt)} ✎
+                  </span>
+                )}
                 <input
                   value={activeEpisode.title}
                   onChange={e => updateEpisode(activeId, () => ({ title: e.target.value }))}
