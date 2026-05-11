@@ -79,16 +79,22 @@ const NewsBlock = ({ clockTime }) => (
 
 const AddButtons = ({ onAddSong, onAddSpeak }) => (
   <div style={{ display: 'flex', gap: 6, marginTop: 6 }}>
-    {[['+ ADD SONG', onAddSong], ['+ ADD SPEAK', onAddSpeak]].map(([label, fn]) => (
-      <button key={label} onClick={fn} style={{
-        flex: 1, padding: '8px', background: 'rgba(209,76,26,0.07)',
-        border: '1px dashed #b0a090', borderRadius: 5,
-        color: 'var(--orange)', fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.06em',
-      }}
-        onMouseEnter={e => { e.currentTarget.style.background = 'rgba(209,76,26,0.14)'; e.currentTarget.style.borderColor = 'var(--orange)'; e.currentTarget.style.borderStyle = 'solid'; }}
-        onMouseLeave={e => { e.currentTarget.style.background = 'rgba(209,76,26,0.07)'; e.currentTarget.style.borderColor = '#b0a090'; e.currentTarget.style.borderStyle = 'dashed'; }}
-      >{label}</button>
-    ))}
+    <button onClick={onAddSong} style={{
+      flex: 1, padding: '8px', background: 'rgba(209,76,26,0.07)',
+      border: '1px dashed #b0a090', borderRadius: 5,
+      color: 'var(--orange)', fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.06em',
+    }}
+      onMouseEnter={e => { e.currentTarget.style.background = 'rgba(209,76,26,0.14)'; e.currentTarget.style.borderColor = 'var(--orange)'; e.currentTarget.style.borderStyle = 'solid'; }}
+      onMouseLeave={e => { e.currentTarget.style.background = 'rgba(209,76,26,0.07)'; e.currentTarget.style.borderColor = '#b0a090'; e.currentTarget.style.borderStyle = 'dashed'; }}
+    >+ ADD SONG</button>
+    <button onClick={onAddSpeak} style={{
+      flex: 1, padding: '8px', background: 'rgba(46,90,170,0.07)',
+      border: '1px dashed #8090c0', borderRadius: 5,
+      color: '#2e5aaa', fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.06em',
+    }}
+      onMouseEnter={e => { e.currentTarget.style.background = 'rgba(46,90,170,0.14)'; e.currentTarget.style.borderColor = '#2e5aaa'; e.currentTarget.style.borderStyle = 'solid'; }}
+      onMouseLeave={e => { e.currentTarget.style.background = 'rgba(46,90,170,0.07)'; e.currentTarget.style.borderColor = '#8090c0'; e.currentTarget.style.borderStyle = 'dashed'; }}
+    >+ ADD SPEAK</button>
   </div>
 );
 
