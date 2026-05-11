@@ -14,12 +14,12 @@ function useDebounce(value, delay) {
 function ToggleBadgeComp({ label, active, color, onClick, disabled, title }) {
   return (
     <button onClick={disabled ? undefined : onClick} title={title} style={{
-      padding: '2px 6px', borderRadius: 3, fontSize: '0.6rem', fontWeight: 700, letterSpacing: '0.04em',
+      padding: '2px 7px', borderRadius: 20, fontSize: '0.6rem', fontWeight: 700, letterSpacing: '0.04em',
       cursor: disabled ? 'default' : 'pointer',
       background: active ? color : 'transparent',
-      color: active ? 'white' : disabled ? 'var(--border-light)' : 'var(--text-muted)',
+      color: active ? 'white' : disabled ? 'var(--border)' : 'var(--text-muted)',
       border: `1px solid ${active ? color : disabled ? 'var(--border-light)' : 'var(--border)'}`,
-      transition: 'all 0.12s', minWidth: 26, textAlign: 'center',
+      transition: 'all 0.12s',
     }}>{label}</button>
   );
 }
@@ -103,7 +103,7 @@ export default function RundownItem({ item, rowNum, onRemove, onUpdate, cumSecs 
         gridTemplateColumns: '18px 44px 1fr 46px 28px 28px 26px 18px',
         gap: 4, alignItems: 'center',
         padding: '6px 10px',
-        background: isSpeakOver ? 'rgba(192,48,48,0.05)' : 'var(--surface2)',
+        background: isSpeakOver ? 'rgba(192,48,48,0.05)' : rowNum % 2 === 0 ? 'var(--surface)' : 'var(--surface2)',
         borderBottom: '1px solid var(--border-light)',
       }}>
 
@@ -121,7 +121,7 @@ export default function RundownItem({ item, rowNum, onRemove, onUpdate, cumSecs 
         <div ref={dropdownRef} style={{ position:'relative', minWidth:0 }}>
           {isSpeak ? (
             <div style={{ display:'flex', alignItems:'center', gap:6 }}>
-              <span style={{ background:'var(--text-muted)', color:'white', fontSize:'0.57rem', fontWeight:700, padding:'1px 6px', borderRadius:10, letterSpacing:'0.05em', flexShrink:0 }}>SPEAK</span>
+              <span style={{ background:'var(--text-muted)', color:'white', fontSize:'0.57rem', fontWeight:700, padding:'2px 8px', borderRadius:20, letterSpacing:'0.05em', flexShrink:0 }}>SPEAK</span>
               <input value={titleArtist} onChange={e=>setTitleArtist(e.target.value)} onBlur={handleTitleBlur}
                 placeholder="Speak topic..."
                 style={{ fontSize:'0.78rem', padding:'2px 4px', width:'100%', background:'transparent', border:'none', borderBottom:'1px solid var(--border)', borderRadius:0, color:'var(--text-dim)' }} />
