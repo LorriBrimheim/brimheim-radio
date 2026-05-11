@@ -24,14 +24,14 @@ const HourHeader = ({ num, usedSecs, itemCount, bgColor }) => {
       marginBottom: 1,
     }}>
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 10 }}>
-        <span style={{ fontFamily: 'Fraunces, serif', fontSize: '1.6rem', fontWeight: 400, color: 'rgba(255,255,255,0.35)', lineHeight: 1 }}>
+        <span style={{ fontFamily: 'Fraunces, serif', fontSize: '1.6rem', fontWeight: 700, color: 'rgba(255,255,255,0.7)', lineHeight: 1 }}>
           {String(num).padStart(2, '0')}
         </span>
         <div>
-          <div style={{ fontSize: '0.65rem', color: 'rgba(255,255,255,0.65)', fontWeight: 700, letterSpacing: '0.08em' }}>
+          <div style={{ fontSize: '0.65rem', color: 'white', fontWeight: 700, letterSpacing: '0.08em' }}>
             HOUR {num} OF 2
           </div>
-          <div style={{ fontSize: '0.62rem', color: 'rgba(255,255,255,0.45)', marginTop: 1 }}>
+          <div style={{ fontSize: '0.62rem', color: 'rgba(255,255,255,0.8)', marginTop: 1 }}>
             {itemCount} items · {formatDuration(usedSecs)}
           </div>
         </div>
@@ -40,7 +40,7 @@ const HourHeader = ({ num, usedSecs, itemCount, bgColor }) => {
         <div style={{ fontSize: '1.3rem', fontFamily: 'Fraunces, serif', color: remColor, lineHeight: 1 }}>
           {over ? `+${formatDuration(Math.abs(remaining))}` : formatDuration(remaining)}
         </div>
-        <div style={{ fontSize: '0.58rem', color: 'rgba(255,255,255,0.45)', letterSpacing: '0.08em', marginTop: 1 }}>REMAINING</div>
+        <div style={{ fontSize: '0.58rem', color: 'rgba(255,255,255,0.75)', letterSpacing: '0.08em', marginTop: 1 }}>REMAINING</div>
       </div>
     </div>
   );
@@ -81,12 +81,12 @@ const AddButtons = ({ onAddSong, onAddSpeak }) => (
   <div style={{ display: 'flex', gap: 6, marginTop: 6 }}>
     {[['+ ADD SONG', onAddSong], ['+ ADD SPEAK', onAddSpeak]].map(([label, fn]) => (
       <button key={label} onClick={fn} style={{
-        flex: 1, padding: '7px', background: 'transparent',
-        border: '1px dashed var(--border)', borderRadius: 5,
-        color: 'var(--text-muted)', fontSize: '0.72rem', fontWeight: 600, letterSpacing: '0.05em',
+        flex: 1, padding: '8px', background: 'rgba(209,76,26,0.07)',
+        border: '1px dashed #b0a090', borderRadius: 5,
+        color: 'var(--orange)', fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.06em',
       }}
-        onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--orange)'; e.currentTarget.style.color = 'var(--orange)'; }}
-        onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--text-muted)'; }}
+        onMouseEnter={e => { e.currentTarget.style.background = 'rgba(209,76,26,0.14)'; e.currentTarget.style.borderColor = 'var(--orange)'; e.currentTarget.style.borderStyle = 'solid'; }}
+        onMouseLeave={e => { e.currentTarget.style.background = 'rgba(209,76,26,0.07)'; e.currentTarget.style.borderColor = '#b0a090'; e.currentTarget.style.borderStyle = 'dashed'; }}
       >{label}</button>
     ))}
   </div>
@@ -183,7 +183,7 @@ export default function Rundown({ items, onReorder, onRemove, onUpdate, onAdd })
                 ))}
               </DroppableZone>
             </SortableContext>
-            <NewsBlock clockTime={h1Duration} />
+            <NewsBlock clockTime={HOUR1_END} />
           </div>
           <AddButtons onAddSong={() => onAdd(blankItem(1, ITEM_TYPES.SONG))} onAddSpeak={() => onAdd(blankItem(1, ITEM_TYPES.SPEAK))} />
         </div>
@@ -205,7 +205,7 @@ export default function Rundown({ items, onReorder, onRemove, onUpdate, onAdd })
                 ))}
               </DroppableZone>
             </SortableContext>
-            <NewsBlock clockTime={HOUR1_END + NEWS_DURATION + h2Duration} />
+            <NewsBlock clockTime={HOUR1_END} />
           </div>
           <AddButtons onAddSong={() => onAdd(blankItem(2, ITEM_TYPES.SONG))} onAddSpeak={() => onAdd(blankItem(2, ITEM_TYPES.SPEAK))} />
         </div>
