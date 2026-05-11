@@ -1,65 +1,74 @@
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 :root {
-  --bg: #0e0e0e;
-  --surface: #161616;
-  --surface2: #202020;
-  --surface3: #2e2e2e;
-  --border: #3d3a36;
-  --text: #f0ede6;
-  --text-dim: #ccc8c2;
-  --text-muted: #a09c97;
-  --accent: #e8d5a3;
-  --accent2: #c9a96e;
-  --green: #6db88a;
-  --red: #c96e6e;
-  --yellow: #d4b96a;
-  --blue: #6e9bc9;
-  --solo: #b388e8;
-  --guest: #6eb8b8;
+  /* Dark surfaces — sidebar, top bars */
+  --navy: #1b2035;
+  --navy2: #222b42;
+  --navy-border: #2e3b5c;
+  --navy-text: #c8c4d8;
+  --navy-muted: #7a80a0;
+
+  /* Accent colors */
+  --orange: #d14c1a;
+  --orange-light: #e06030;
+  --olive: #3d5220;
+  --olive-light: #4e682a;
+
+  /* Light surfaces — main content */
+  --bg: #e0dbd0;
+  --surface: #ebe7dc;
+  --surface2: #f5f1e8;
+  --surface3: #faf8f4;
+  --border: #cdc8b8;
+  --border-light: #ddd8cc;
+
+  /* Text on light bg */
+  --text: #1a1814;
+  --text-dim: #3c3830;
+  --text-muted: #7c7870;
+
+  /* Status */
+  --green: #2e7a4a;
+  --red: #c03030;
+  --yellow: #b08020;
+  --blue: #2e5aaa;
+  --solo: #6a4aaa;
+  --guest-color: #2e8aaa;
+
+  /* Legacy compat */
+  --accent: #d14c1a;
+  --accent2: #d14c1a;
 }
 
 html { font-size: 14px; }
 
 body {
-  background: var(--bg);
+  background: var(--navy);
   color: var(--text);
   font-family: 'DM Mono', monospace;
   min-height: 100vh;
   -webkit-font-smoothing: antialiased;
 }
 
-h1, h2, h3 {
-  font-family: 'Fraunces', serif;
-  font-weight: 300;
-}
+h1, h2, h3 { font-family: 'Fraunces', serif; font-weight: 300; }
 
 ::-webkit-scrollbar { width: 4px; height: 4px; }
-::-webkit-scrollbar-track { background: var(--bg); }
-::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--navy-border); border-radius: 2px; }
 
-button {
-  cursor: pointer;
-  font-family: 'DM Mono', monospace;
-  font-size: 0.85rem;
-  border: none;
-  outline: none;
-}
+button { cursor: pointer; font-family: 'DM Mono', monospace; font-size: 0.85rem; border: none; outline: none; }
 
 input, select, textarea {
   font-family: 'DM Mono', monospace;
   font-size: 0.85rem;
-  background: var(--surface2);
+  background: var(--surface3);
   color: var(--text);
   border: 1px solid var(--border);
   border-radius: 4px;
-  padding: 6px 10px;
+  padding: 5px 8px;
   outline: none;
   transition: border-color 0.15s;
 }
 
-input:focus, select:focus, textarea:focus {
-  border-color: var(--accent2);
-}
-
+input:focus, select:focus, textarea:focus { border-color: var(--orange); }
 input::placeholder { color: var(--text-muted); }
