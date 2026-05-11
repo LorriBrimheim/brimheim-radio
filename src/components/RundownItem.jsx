@@ -121,7 +121,7 @@ export default function RundownItem({ item, rowNum, onRemove, onUpdate, cumSecs 
         <div ref={dropdownRef} style={{ position:'relative', minWidth:0 }}>
           {isSpeak ? (
             <div style={{ display:'flex', alignItems:'center', gap:6 }}>
-              <span style={{ background:'var(--text-muted)', color:'white', fontSize:'0.57rem', fontWeight:700, padding:'2px 8px', borderRadius:20, letterSpacing:'0.05em', flexShrink:0 }}>SPEAK</span>
+              <span style={{ background:'#6840a8', color:'white', fontSize:'0.57rem', fontWeight:700, padding:'2px 8px', borderRadius:20, letterSpacing:'0.05em', flexShrink:0 }}>SPEAK</span>
               <input value={titleArtist} onChange={e=>setTitleArtist(e.target.value)} onBlur={handleTitleBlur}
                 placeholder="Speak topic..."
                 style={{ fontSize:'0.78rem', padding:'2px 4px', width:'100%', background:'transparent', border:'none', borderBottom:'1px solid var(--border)', borderRadius:0, color:'var(--text-dim)' }} />
@@ -141,14 +141,14 @@ export default function RundownItem({ item, rowNum, onRemove, onUpdate, cumSecs 
                   title={isGuest ? 'Guest pick — click to remove' : 'Click to mark as guest pick'}
                   style={{
                     background: isGuest ? 'var(--orange)' : 'transparent',
-                    color: isGuest ? 'white' : 'var(--border)',
+                    color: isGuest ? 'white' : '#9a7060',
                     fontSize:'0.57rem', fontWeight:700, padding:'1px 5px', borderRadius:10,
                     letterSpacing:'0.04em', flexShrink:0,
-                    border:`1px solid ${isGuest?'var(--orange)':'var(--border)'}`,
+                    border:`1px solid ${isGuest?'var(--orange)':'#c0a898'}`,
                     cursor:'pointer', transition:'all 0.12s',
                   }}
                   onMouseEnter={e=>{ if(!isGuest){e.currentTarget.style.borderColor='var(--orange)';e.currentTarget.style.color='var(--orange)';} }}
-                  onMouseLeave={e=>{ if(!isGuest){e.currentTarget.style.borderColor='var(--border)';e.currentTarget.style.color='var(--border)';} }}
+                  onMouseLeave={e=>{ if(!isGuest){e.currentTarget.style.borderColor='#c0a898';e.currentTarget.style.color='#9a7060';} }}
                 >{isGuest ? 'GUEST PICK' : 'GP'}</button>
               </div>
 
@@ -193,13 +193,13 @@ export default function RundownItem({ item, rowNum, onRemove, onUpdate, cumSecs 
         </div>
 
         {/* DK */}
-        <ToggleBadgeComp label="DK" active={!!item.isDanish} color="var(--blue)"
+        <ToggleBadgeComp label="DK" active={!!item.isDanish} color="#1a7a52"
           onClick={isSong ? ()=>update('isDanish',!item.isDanish) : undefined}
           disabled={!isSong}
           title={isSong?(item.isDanish?'Danish — click to remove':'Mark as Danish'):''} />
 
         {/* P6 */}
-        <ToggleBadgeComp label="P6" active={!!item.isP6Beat} color="var(--blue)"
+        <ToggleBadgeComp label="P6" active={!!item.isP6Beat} color="#2e5aaa"
           onClick={isSong ? ()=>update('isP6Beat',!item.isP6Beat) : undefined}
           disabled={!isSong}
           title={isSong?(item.isP6Beat?'P6 Beat — click to remove':'Mark as P6 Beat'):''} />
@@ -217,9 +217,9 @@ export default function RundownItem({ item, rowNum, onRemove, onUpdate, cumSecs 
 
         {/* Delete */}
         <button onClick={()=>onRemove(item.id)}
-          style={{ background:'transparent', color:'var(--border)', padding:'2px 3px', borderRadius:3, fontSize:'0.85rem', border:'1px solid transparent', lineHeight:1 }}
-          onMouseEnter={e=>{e.currentTarget.style.color='var(--red)';e.currentTarget.style.borderColor='var(--border-light)';}}
-          onMouseLeave={e=>{e.currentTarget.style.color='var(--border)';e.currentTarget.style.borderColor='transparent';}}>×</button>
+          style={{ background:'transparent', color:'#a09890', padding:'2px 3px', borderRadius:3, fontSize:'0.85rem', border:'1px solid transparent', lineHeight:1 }}
+          onMouseEnter={e=>{e.currentTarget.style.color='var(--red)';e.currentTarget.style.borderColor='var(--border)';}}
+          onMouseLeave={e=>{e.currentTarget.style.color='#a09890';e.currentTarget.style.borderColor='transparent';}}>×</button>
       </div>
     </div>
   );
