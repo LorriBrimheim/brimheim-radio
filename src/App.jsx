@@ -188,26 +188,26 @@ export default function App() {
       <div style={{ flex:1, display:'flex', flexDirection:'column', overflow:'hidden' }}>
 
         {/* Header */}
-        <div style={{ background:'var(--navy)', padding:'13px 22px', display:'flex', alignItems:'center', gap:14, borderBottom:'1px solid var(--navy-border)', flexShrink:0 }}>
+        <div style={{ background:'white', padding:'12px 22px', display:'flex', alignItems:'center', gap:14, borderBottom:'1px solid var(--border)', flexShrink:0 }}>
           {activeEpisode ? (
             <>
-              <div style={{ display:'flex', alignItems:'baseline', gap:10, flex:1, minWidth:0 }}>
-                <span style={{ fontSize:'0.62rem', color:'var(--navy-muted)', letterSpacing:'0.1em', fontWeight:700, flexShrink:0 }}>
+              <div style={{ display:'flex', alignItems:'center', gap:10, flex:1, minWidth:0 }}>
+                <span style={{ fontSize:'0.6rem', color:'var(--text-muted)', letterSpacing:'0.12em', fontWeight:700, flexShrink:0, background:'var(--surface)', border:'1px solid var(--border)', borderRadius:3, padding:'2px 6px' }}>
                   EP · {fmtEpDate(activeEpisode.createdAt)}
                 </span>
                 <input
                   value={activeEpisode.title}
                   onChange={e => updateEpisode(activeId, () => ({ title: e.target.value }))}
                   placeholder="Episode title"
-                  style={{ fontSize:'1.35rem', fontFamily:'Fraunces, serif', fontWeight:400, background:'transparent', border:'none', color:'white', flex:1, padding:0, minWidth:0 }}
+                  style={{ fontSize:'1.55rem', fontFamily:'Fraunces, serif', fontWeight:700, background:'transparent', border:'none', color:'var(--text)', flex:1, padding:0, minWidth:0 }}
                 />
               </div>
-              <span style={{ fontSize:'0.62rem', color:'var(--navy-muted)', letterSpacing:'0.08em', fontWeight:700, flexShrink:0 }}>GUEST</span>
+              <span style={{ fontSize:'0.6rem', color:'var(--text-muted)', letterSpacing:'0.1em', fontWeight:700, flexShrink:0 }}>GUEST</span>
               <input
                 value={activeEpisode.guestName}
                 onChange={e => updateEpisode(activeId, () => ({ guestName: e.target.value }))}
                 placeholder="Guest artist"
-                style={{ width:140, fontSize:'0.82rem', background:'rgba(255,255,255,0.09)', border:'1px solid var(--navy-border)', color:'white', borderRadius:4 }}
+                style={{ width:140, fontSize:'0.82rem', background:'var(--surface)', border:'1px solid var(--border)', color:'var(--text)', borderRadius:4 }}
               />
               {/* Export */}
               <div style={{ position:'relative', flexShrink:0 }}>
@@ -215,10 +215,10 @@ export default function App() {
                   {exportMsg || 'EXPORT'}
                 </button>
                 {showExportMenu && (
-                  <div style={{ position:'absolute', right:0, top:'calc(100% + 6px)', background:'var(--navy2)', border:'1px solid var(--navy-border)', borderRadius:6, padding:6, zIndex:200, minWidth:190, boxShadow:'0 8px 24px rgba(0,0,0,0.5)' }}>
+                  <div style={{ position:'absolute', right:0, top:'calc(100% + 6px)', background:'white', border:'1px solid var(--border)', borderRadius:6, padding:6, zIndex:200, minWidth:190, boxShadow:'0 8px 24px rgba(0,0,0,0.15)' }}>
                     {[['📋 Copy for Google Doc', handleCopy], ['⬇ Download .txt', handleDownload]].map(([label, fn]) => (
-                      <button key={label} onClick={fn} style={{ display:'block', width:'100%', padding:'8px 12px', background:'transparent', color:'var(--navy-text)', fontSize:'0.78rem', textAlign:'left', borderRadius:4, border:'none' }}
-                        onMouseEnter={e=>e.currentTarget.style.background='rgba(255,255,255,0.09)'}
+                      <button key={label} onClick={fn} style={{ display:'block', width:'100%', padding:'8px 12px', background:'transparent', color:'var(--text-dim)', fontSize:'0.78rem', textAlign:'left', borderRadius:4, border:'none' }}
+                        onMouseEnter={e=>e.currentTarget.style.background='var(--surface)'}
                         onMouseLeave={e=>e.currentTarget.style.background='transparent'}
                       >{label}</button>
                     ))}
@@ -227,13 +227,13 @@ export default function App() {
               </div>
             </>
           ) : (
-            <span style={{ color:'var(--navy-muted)', fontStyle:'italic', fontSize:'0.85rem' }}>Select or create an episode</span>
+            <span style={{ color:'var(--text-muted)', fontStyle:'italic', fontSize:'0.85rem' }}>Select or create an episode</span>
           )}
         </div>
 
         {/* Stats bar — light background */}
         {activeEpisode && (
-          <div style={{ background:'var(--surface)', padding:'10px 22px', display:'flex', alignItems:'center', borderBottom:'1px solid var(--border)', flexShrink:0, gap:0 }}>
+          <div style={{ background:'white', padding:'10px 22px', display:'flex', alignItems:'center', borderBottom:'1px solid var(--border)', flexShrink:0, gap:0 }}>
             {/* Total */}
             <div style={{ paddingRight:20, marginRight:20, borderRight:'1px solid var(--border)' }}>
               <div style={{ fontSize:'0.56rem', color:'var(--text-muted)', letterSpacing:'0.1em', fontWeight:700, marginBottom:1 }}>TOTAL</div>
