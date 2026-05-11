@@ -109,7 +109,7 @@ export default function RundownItem({ item, rowNum, onRemove, onUpdate, cumSecs 
 
         {/* Drag */}
         <div {...attributes} {...listeners} title={`${timestamp} — drag to reorder`}
-          style={{ cursor: isDragging?'grabbing':'grab', color:'var(--border)', fontSize:'0.85rem', textAlign:'center', touchAction:'none', userSelect:'none' }}>⠿</div>
+          style={{ cursor: isDragging?'grabbing':'grab', color:'#8a857a', fontSize:'0.85rem', textAlign:'center', touchAction:'none', userSelect:'none' }}>⠿</div>
 
         {/* Row num + timestamp */}
         <div style={{ textAlign:'center' }}>
