@@ -59,19 +59,19 @@ const ColHeader = () => (
   </div>
 );
 
-const NewsRow = ({ clockTime }) => (
+const NewsBlock = ({ clockTime }) => (
   <div style={{
     display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-    padding: '8px 14px', marginTop: 10,
-    background: 'var(--surface2)',
-    border: '1px solid var(--border)',
-    borderRadius: 6,
+    padding: '7px 10px', margin: '4px 0',
+    background: 'rgba(160,120,40,0.08)',
+    border: '1px solid rgba(160,120,40,0.25)',
+    borderRadius: 4,
   }}>
-    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-      <span style={{ background: 'var(--text-dim)', color: 'var(--surface3)', fontSize: '0.62rem', fontWeight: 700, padding: '2px 8px', borderRadius: 12, letterSpacing: '0.05em' }}>NEWS</span>
-      <span style={{ fontSize: '0.78rem', color: 'var(--text-dim)' }}>Fixed break · 5:00</span>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+      <span style={{ background: '#8a6820', color: 'white', fontSize: '0.58rem', fontWeight: 700, padding: '2px 7px', borderRadius: 10, letterSpacing: '0.05em' }}>NEWS</span>
+      <span style={{ fontSize: '0.75rem', color: 'var(--text-dim)' }}>Fixed break · 5:00</span>
     </div>
-    <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontVariantNumeric: 'tabular-nums' }}>
+    <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)', fontVariantNumeric: 'tabular-nums' }}>
       {formatDuration(clockTime)} → {formatDuration(clockTime + NEWS_DURATION)}
     </span>
   </div>
@@ -166,9 +166,9 @@ export default function Rundown({ items, onReorder, onRemove, onUpdate, onAdd })
     <DndContext sensors={sensors} collisionDetection={closestCorners} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
 
-        {/* Hour 1 */}
+        {/* Hour 1 — orange/rust header */}
         <div>
-          <HourHeader num={1} usedSecs={h1Duration} itemCount={h1Items.length} bgColor="var(--olive)" />
+          <HourHeader num={1} usedSecs={h1Duration} itemCount={h1Items.length} bgColor="#bf4520" />
           <ColHeader />
           <div style={{ background: 'var(--surface)', borderRadius: '0 0 6px 6px', paddingBottom: 4 }}>
             <SortableContext items={h1Items.map(i => i.id)} strategy={verticalListSortingStrategy}>
@@ -183,11 +183,12 @@ export default function Rundown({ items, onReorder, onRemove, onUpdate, onAdd })
                 ))}
               </DroppableZone>
             </SortableContext>
+            <NewsBlock clockTime={h1Duration} />
           </div>
           <AddButtons onAddSong={() => onAdd(blankItem(1, ITEM_TYPES.SONG))} onAddSpeak={() => onAdd(blankItem(1, ITEM_TYPES.SPEAK))} />
         </div>
 
-        {/* Hour 2 */}
+        {/* Hour 2 — olive/green header */}
         <div>
           <HourHeader num={2} usedSecs={h2Duration} itemCount={h2Items.length} bgColor="#3d5220" />
           <ColHeader />
@@ -204,13 +205,11 @@ export default function Rundown({ items, onReorder, onRemove, onUpdate, onAdd })
                 ))}
               </DroppableZone>
             </SortableContext>
+            <NewsBlock clockTime={HOUR1_END + NEWS_DURATION + h2Duration} />
           </div>
           <AddButtons onAddSong={() => onAdd(blankItem(2, ITEM_TYPES.SONG))} onAddSpeak={() => onAdd(blankItem(2, ITEM_TYPES.SPEAK))} />
         </div>
       </div>
-
-      {/* News break */}
-      <NewsRow clockTime={h1Duration} />
 
       {/* Drag overlay */}
       <DragOverlay dropAnimation={null}>
