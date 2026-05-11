@@ -3,49 +3,51 @@ import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { formatDuration, ITEM_TYPES, MAX_SPEAK, parseDuration } from '../utils';
 
-const SEGMENT_OPTIONS = [
-  { value: 'solo', label: 'Solo DJ' },
-  { value: 'guest', label: 'Gæst' },
-];
-
-const TYPE_OPTIONS = [
-  { value: ITEM_TYPES.SONG, label: 'Sang' },
-  { value: ITEM_TYPES.SPEAK, label: 'Speak' },
-];
-
-const DURATION_PRESETS = ['0:30', '1:00', '1:30', '2:00', '3:00', '3:30', '4:00', '4:30', '5:00'];
-
-const inputStyle = {
-  fontSize: '0.8rem',
-  padding: '4px 7px',
-  width: '100%',
-  boxSizing: 'border-box',
-};
+const DURATION_PRESETS = ['0:30','1:00','1:30','2:00','3:00','3:30','4:00','4:30','5:00'];
 
 function useDebounce(value, delay) {
   const [deb, setDeb] = useState(value);
-  useEffect(() => {
-    const t = setTimeout(() => setDeb(value), delay);
-    return () => clearTimeout(t);
-  }, [value, delay]);
+  useEffect(() => { const t = setTimeout(() => setDeb(value), delay); return () => clearTimeout(t); }, [value, delay]);
   return deb;
 }
 
-export default function RundownItem({ item, index, onRemove, onUpdate, cumSecs }) {
+const ToggleBadge = ({ label, active, color, onClick, disabled, title }) => (
+  <button onClick={disabled ? undefined : onClick} title={title} style={{
+    padding: '2px 6px', borderRadius: 3, fontSize: '0.6rem', fontWeight: 700, letterSpacing: '0.04em',
+    cursor: disabled ? 'default' : 'pointer',
+    background: active ? color : 'transparent',
+    color: active ? 'white' : disabled ? 'var(--border-light)' : 'var(--text-muted)',
+    border: `1px solid ${active ? color : disabled ? 'var(--border-light)' : 'var(--border)'}`,
+    transition: 'all 0.12s', minWidth: 26, textAlign: 'center',
+  }}>{label}</ToggleBadge>
+);
+
+// fix recursion — redefine as plain function
+function ToggleBadgeComp({ label, active, color, onClick, disabled, title }) {
+  return (
+    <button onClick={disabled ? undefined : onClick} title={title} style={{
+      padding: '2px 6px', borderRadius: 3, fontSize: '0.6rem', fontWeight: 700, letterSpacing: '0.04em',
+      cursor: disabled ? 'default' : 'pointer',
+      background: active ? color : 'transparent',
+      color: active ? 'white' : disabled ? 'var(--border-light)' : 'var(--text-muted)',
+      border: `1px solid ${active ? color : disabled ? 'var(--border-light)' : 'var(--border)'}`,
+      transition: 'all 0.12s', minWidth: 26, textAlign: 'center',
+    }}>{label}</button>
+  );
+}
+
+export default function RundownItem({ item, rowNum, onRemove, onUpdate, cumSecs }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: item.id });
 
-  const segment = item.segment || (item.isGuest ? 'guest' : 'solo');
   const isSong = item.type === ITEM_TYPES.SONG;
-  const isSpeakOver = item.type === ITEM_TYPES.SPEAK && item.duration > MAX_SPEAK;
+  const isSpeak = item.type === ITEM_TYPES.SPEAK;
+  const isSpeakOver = isSpeak && item.duration > MAX_SPEAK;
+  const isGuest = item.segment === 'guest';
 
   const [durStr, setDurStr] = useState(item.duration > 0 ? formatDuration(item.duration) : '');
   const [titleArtist, setTitleArtist] = useState(
-    isSong
-      ? `${item.title || ''}${item.artist ? ' — ' + item.artist : ''}`
-      : (item.notes || '')
+    isSong ? `${item.title||''}${item.artist?' — '+item.artist:''}` : (item.notes||'')
   );
-
-  // Autocomplete state
   const [searchResults, setSearchResults] = useState([]);
   const [searching, setSearching] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
@@ -55,345 +57,181 @@ export default function RundownItem({ item, index, onRemove, onUpdate, cumSecs }
 
   const debouncedQuery = useDebounce(isSong ? titleArtist : '', 420);
 
-  // Sync title/artist when type changes
   useEffect(() => {
-    setTitleArtist(
-      item.type === ITEM_TYPES.SONG
-        ? `${item.title || ''}${item.artist ? ' — ' + item.artist : ''}`
-        : (item.notes || '')
-    );
+    setTitleArtist(item.type === ITEM_TYPES.SONG
+      ? `${item.title||''}${item.artist?' — '+item.artist:''}` : (item.notes||''));
   }, [item.type]);
 
-  // Sync duration when item id changes (e.g. after drag reorder)
-  useEffect(() => {
-    setDurStr(item.duration > 0 ? formatDuration(item.duration) : '');
-  }, [item.id]);
+  useEffect(() => { setDurStr(item.duration > 0 ? formatDuration(item.duration) : ''); }, [item.id]);
 
-  // iTunes autocomplete search
   useEffect(() => {
-    if (!isSong || debouncedQuery.length < 3) {
-      setSearchResults([]);
-      setShowDropdown(false);
-      return;
-    }
+    if (!isSong || debouncedQuery.length < 3) { setSearchResults([]); setShowDropdown(false); return; }
     setSearching(true);
-    fetch(
-      `https://itunes.apple.com/search?term=${encodeURIComponent(debouncedQuery)}&entity=song&limit=7&country=dk`
-    )
+    fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(debouncedQuery)}&entity=song&limit=7&country=dk`)
       .then(r => r.json())
       .then(data => {
-        const results = (data.results || []).map(r => ({
-          title: r.trackName,
-          artist: r.artistName,
-          duration: Math.round(r.trackTimeMillis / 1000),
-        }));
-        setSearchResults(results);
-        setShowDropdown(results.length > 0);
+        const res = (data.results||[]).map(r => ({ title:r.trackName, artist:r.artistName, duration:Math.round(r.trackTimeMillis/1000) }));
+        setSearchResults(res); setShowDropdown(res.length > 0);
       })
       .catch(() => setSearchResults([]))
       .finally(() => setSearching(false));
   }, [debouncedQuery, isSong]);
 
-  // Close dropdown/presets on outside click
   useEffect(() => {
-    const handleOutside = (e) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
-        setShowDropdown(false);
-      }
-      if (presetsRef.current && !presetsRef.current.contains(e.target)) {
-        setShowPresets(false);
-      }
+    const h = (e) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) setShowDropdown(false);
+      if (presetsRef.current && !presetsRef.current.contains(e.target)) setShowPresets(false);
     };
-    document.addEventListener('mousedown', handleOutside);
-    return () => document.removeEventListener('mousedown', handleOutside);
+    document.addEventListener('mousedown', h);
+    return () => document.removeEventListener('mousedown', h);
   }, []);
 
-  const selectResult = (result) => {
-    onUpdate(item.id, {
-      title: result.title,
-      artist: result.artist,
-      duration: result.duration,
-    });
-    setTitleArtist(`${result.title} — ${result.artist}`);
-    setDurStr(formatDuration(result.duration));
-    setShowDropdown(false);
-    setSearchResults([]);
+  const selectResult = (r) => {
+    onUpdate(item.id, { title:r.title, artist:r.artist, duration:r.duration });
+    setTitleArtist(`${r.title} — ${r.artist}`); setDurStr(formatDuration(r.duration));
+    setShowDropdown(false); setSearchResults([]);
   };
 
-  const update = (field, value) => onUpdate(item.id, { [field]: value });
+  const update = (f, v) => onUpdate(item.id, { [f]: v });
 
   const handleTitleBlur = () => {
-    if (item.type === ITEM_TYPES.SONG) {
-      const parts = titleArtist.split(' — ');
-      onUpdate(item.id, { title: parts[0].trim(), artist: parts.slice(1).join(' — ').trim() });
-    } else {
-      update('notes', titleArtist);
-    }
+    if (isSong) { const p = titleArtist.split(' — '); onUpdate(item.id, { title:p[0].trim(), artist:p.slice(1).join(' — ').trim() }); }
+    else update('notes', titleArtist);
   };
 
   const handleDurBlur = () => {
     const secs = parseDuration(durStr);
-    update('duration', secs);
-    setDurStr(secs > 0 ? formatDuration(secs) : '');
+    update('duration', secs); setDurStr(secs > 0 ? formatDuration(secs) : '');
   };
 
-  const applyPreset = (preset) => {
-    const secs = parseDuration(preset);
-    update('duration', secs);
-    setDurStr(preset);
-    setShowPresets(false);
-  };
+  const toggleGuest = () => { const ng = isGuest ? 'solo' : 'guest'; onUpdate(item.id, { segment:ng, isGuest: ng==='guest' }); };
 
-  const diskColor = item.diskoteketCleared ? 'var(--green)' : 'var(--red)';
-
-  const timestamp = `${Math.floor(cumSecs / 60)}:${String(cumSecs % 60).padStart(2, '0')}`;
+  const timestamp = formatDuration(cumSecs);
 
   return (
-    <div
-      ref={setNodeRef}
-      style={{
-        transform: CSS.Transform.toString(transform),
-        transition,
-        opacity: isDragging ? 0.35 : 1,
-        position: 'relative',
-      }}
-    >
+    <div ref={setNodeRef} style={{ transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.3 : 1 }}>
       <div style={{
         display: 'grid',
-        gridTemplateColumns: '16px 82px 1fr 78px 70px 44px 32px 36px 28px',
-        gap: 5,
-        alignItems: 'center',
-        padding: '5px 8px',
-        marginBottom: 4,
-        background: 'var(--surface)',
-        border: `1px solid ${isSpeakOver ? 'var(--red)' : 'var(--border)'}`,
-        borderLeft: `3px solid ${segment === 'guest' ? 'var(--guest)' : 'var(--solo)'}`,
-        borderRadius: 6,
+        gridTemplateColumns: '18px 44px 1fr 46px 28px 28px 26px 18px',
+        gap: 4, alignItems: 'center',
+        padding: '6px 10px',
+        background: isSpeakOver ? 'rgba(192,48,48,0.05)' : 'var(--surface2)',
+        borderBottom: '1px solid var(--border-light)',
       }}>
 
-        {/* Drag handle — hover shows timestamp, title explains cross-hour dragging */}
-        <div
-          {...attributes}
-          {...listeners}
-          title={`${timestamp} — drag to reorder or move between hours`}
-          style={{
-            cursor: isDragging ? 'grabbing' : 'grab',
-            color: 'var(--text-muted)',
-            fontSize: '0.85rem',
-            textAlign: 'center',
-            touchAction: 'none',
-            userSelect: 'none',
-          }}
-        >
-          ⠿
+        {/* Drag */}
+        <div {...attributes} {...listeners} title={`${timestamp} — drag to reorder`}
+          style={{ cursor: isDragging?'grabbing':'grab', color:'var(--border)', fontSize:'0.85rem', textAlign:'center', touchAction:'none', userSelect:'none' }}>⠿</div>
+
+        {/* Row num + timestamp */}
+        <div style={{ textAlign:'center' }}>
+          <div style={{ fontSize:'0.68rem', fontWeight:700, color:'var(--text-dim)', fontVariantNumeric:'tabular-nums' }}>{String(rowNum).padStart(2,'0')}</div>
+          <div style={{ fontSize:'0.57rem', color:'var(--text-muted)', fontVariantNumeric:'tabular-nums', marginTop:1 }}>{timestamp}</div>
         </div>
 
-        {/* Segment */}
-        <select
-          value={segment}
-          onChange={e => {
-            update('segment', e.target.value);
-            update('isGuest', e.target.value === 'guest');
-          }}
-          style={inputStyle}
-        >
-          {SEGMENT_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-        </select>
-
-        {/* Title / Artist with autocomplete */}
-        <div ref={dropdownRef} style={{ position: 'relative' }}>
-          <input
-            value={titleArtist}
-            onChange={e => {
-              setTitleArtist(e.target.value);
-              if (isSong && e.target.value.length >= 3) setShowDropdown(true);
-            }}
-            onBlur={handleTitleBlur}
-            onKeyDown={e => { if (e.key === 'Escape') setShowDropdown(false); }}
-            placeholder={isSong ? 'Titel — Artist' : 'Speak emne...'}
-            style={{ ...inputStyle, paddingRight: searching ? 22 : 7 }}
-          />
-
-          {/* Searching spinner */}
-          {searching && (
-            <div style={{
-              position: 'absolute', right: 7, top: '50%', transform: 'translateY(-50%)',
-              fontSize: '0.65rem', color: 'var(--accent2)',
-            }}>
-              ···
+        {/* Content */}
+        <div ref={dropdownRef} style={{ position:'relative', minWidth:0 }}>
+          {isSpeak ? (
+            <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+              <span style={{ background:'var(--text-muted)', color:'white', fontSize:'0.57rem', fontWeight:700, padding:'1px 6px', borderRadius:10, letterSpacing:'0.05em', flexShrink:0 }}>SPEAK</span>
+              <input value={titleArtist} onChange={e=>setTitleArtist(e.target.value)} onBlur={handleTitleBlur}
+                placeholder="Speak topic..."
+                style={{ fontSize:'0.78rem', padding:'2px 4px', width:'100%', background:'transparent', border:'none', borderBottom:'1px solid var(--border)', borderRadius:0, color:'var(--text-dim)' }} />
             </div>
-          )}
-
-          {/* Autocomplete dropdown */}
-          {showDropdown && searchResults.length > 0 && (
-            <div style={{
-              position: 'absolute',
-              top: 'calc(100% + 2px)',
-              left: 0,
-              right: 0,
-              background: 'var(--surface2)',
-              border: '1px solid var(--accent2)',
-              borderRadius: 6,
-              zIndex: 200,
-              boxShadow: '0 6px 20px rgba(0,0,0,0.5)',
-              overflow: 'hidden',
-            }}>
-              {searchResults.map((r, i) => (
-                <div
-                  key={i}
-                  onMouseDown={e => { e.preventDefault(); selectResult(r); }}
+          ) : (
+            <>
+              <div style={{ display:'flex', alignItems:'center', gap:5, minWidth:0 }}>
+                <input value={titleArtist}
+                  onChange={e=>{ setTitleArtist(e.target.value); if(e.target.value.length>=3) setShowDropdown(true); }}
+                  onBlur={handleTitleBlur}
+                  onKeyDown={e=>{ if(e.key==='Escape') setShowDropdown(false); }}
+                  placeholder="Title — Artist"
+                  style={{ fontSize:'0.8rem', padding:'2px 4px', flex:1, minWidth:0, background:'transparent', border:'none', borderBottom:'1px solid var(--border)', borderRadius:0, color:'var(--text)' }} />
+                {searching && <span style={{ fontSize:'0.6rem', color:'var(--text-muted)', flexShrink:0 }}>···</span>}
+                {/* Guest pick badge — click to toggle */}
+                <button onClick={toggleGuest}
+                  title={isGuest ? 'Guest pick — click to remove' : 'Click to mark as guest pick'}
                   style={{
-                    padding: '8px 12px',
-                    cursor: 'pointer',
-                    borderBottom: i < searchResults.length - 1 ? '1px solid var(--border)' : 'none',
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    gap: 10,
+                    background: isGuest ? 'var(--orange)' : 'transparent',
+                    color: isGuest ? 'white' : 'var(--border)',
+                    fontSize:'0.57rem', fontWeight:700, padding:'1px 5px', borderRadius:10,
+                    letterSpacing:'0.04em', flexShrink:0,
+                    border:`1px solid ${isGuest?'var(--orange)':'var(--border)'}`,
+                    cursor:'pointer', transition:'all 0.12s',
                   }}
-                  onMouseEnter={e => e.currentTarget.style.background = 'var(--surface3)'}
-                  onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-                >
-                  <div style={{ minWidth: 0 }}>
-                    <div style={{ fontSize: '0.82rem', color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                      {r.title}
-                    </div>
-                    <div style={{ fontSize: '0.71rem', color: 'var(--text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                      {r.artist}
-                    </div>
-                  </div>
-                  <span style={{ fontSize: '0.75rem', color: 'var(--accent2)', fontVariantNumeric: 'tabular-nums', flexShrink: 0 }}>
-                    {formatDuration(r.duration)}
-                  </span>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Duration with preset popup */}
-        <div ref={presetsRef} style={{ position: 'relative' }}>
-          <input
-            value={durStr}
-            onChange={e => setDurStr(e.target.value)}
-            onFocus={() => setShowPresets(true)}
-            onBlur={handleDurBlur}
-            onKeyDown={e => { if (e.key === 'Enter') e.target.blur(); }}
-            placeholder="3:24"
-            style={{ ...inputStyle, textAlign: 'center' }}
-          />
-          {showPresets && (
-            <div style={{
-              position: 'absolute',
-              top: 'calc(100% + 2px)',
-              left: '50%',
-              transform: 'translateX(-50%)',
-              background: 'var(--surface2)',
-              border: '1px solid var(--border)',
-              borderRadius: 6,
-              padding: '7px',
-              zIndex: 200,
-              display: 'flex',
-              flexWrap: 'wrap',
-              gap: 4,
-              width: 170,
-              boxShadow: '0 6px 20px rgba(0,0,0,0.5)',
-            }}>
-              <div style={{ width: '100%', fontSize: '0.62rem', color: 'var(--text-muted)', marginBottom: 2, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                Quick fill
+                  onMouseEnter={e=>{ if(!isGuest){e.currentTarget.style.borderColor='var(--orange)';e.currentTarget.style.color='var(--orange)';} }}
+                  onMouseLeave={e=>{ if(!isGuest){e.currentTarget.style.borderColor='var(--border)';e.currentTarget.style.color='var(--border)';} }}
+                >{isGuest ? 'GUEST PICK' : 'GP'}</button>
               </div>
+
+              {/* iTunes dropdown */}
+              {showDropdown && searchResults.length > 0 && (
+                <div style={{ position:'absolute', top:'calc(100% + 2px)', left:0, right:0, background:'var(--surface3)', border:'1px solid var(--orange)', borderRadius:5, zIndex:200, boxShadow:'0 6px 20px rgba(0,0,0,0.15)', overflow:'hidden' }}>
+                  {searchResults.map((r,i) => (
+                    <div key={i} onMouseDown={e=>{e.preventDefault();selectResult(r);}}
+                      style={{ padding:'7px 10px', cursor:'pointer', borderBottom: i<searchResults.length-1?'1px solid var(--border)':'none', display:'flex', justifyContent:'space-between', alignItems:'center', gap:8 }}
+                      onMouseEnter={e=>e.currentTarget.style.background='var(--surface)'}
+                      onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
+                      <div style={{ minWidth:0 }}>
+                        <div style={{ fontSize:'0.8rem', color:'var(--text)', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{r.title}</div>
+                        <div style={{ fontSize:'0.68rem', color:'var(--text-muted)', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{r.artist}</div>
+                      </div>
+                      <span style={{ fontSize:'0.72rem', color:'var(--text-muted)', flexShrink:0, fontVariantNumeric:'tabular-nums' }}>{formatDuration(r.duration)}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </>
+          )}
+        </div>
+
+        {/* Duration */}
+        <div ref={presetsRef} style={{ position:'relative' }}>
+          <input value={durStr} onChange={e=>setDurStr(e.target.value)} onFocus={()=>setShowPresets(true)} onBlur={handleDurBlur}
+            onKeyDown={e=>{if(e.key==='Enter')e.target.blur();}} placeholder="0:00"
+            style={{ fontSize:'0.75rem', padding:'2px 4px', textAlign:'center', width:'100%', fontVariantNumeric:'tabular-nums' }} />
+          {showPresets && (
+            <div style={{ position:'absolute', top:'calc(100% + 2px)', left:'50%', transform:'translateX(-50%)', background:'var(--surface3)', border:'1px solid var(--border)', borderRadius:5, padding:6, zIndex:200, display:'flex', flexWrap:'wrap', gap:3, width:158, boxShadow:'0 4px 16px rgba(0,0,0,0.15)' }}>
+              <div style={{ width:'100%', fontSize:'0.57rem', color:'var(--text-muted)', marginBottom:2, textTransform:'uppercase', letterSpacing:'0.06em' }}>Quick fill</div>
               {DURATION_PRESETS.map(p => (
-                <button
-                  key={p}
-                  onMouseDown={e => { e.preventDefault(); applyPreset(p); }}
-                  style={{
-                    padding: '3px 8px',
-                    background: 'var(--surface3)',
-                    color: 'var(--text-dim)',
-                    borderRadius: 3,
-                    fontSize: '0.73rem',
-                    border: '1px solid var(--border)',
-                    cursor: 'pointer',
-                  }}
-                  onMouseEnter={e => { e.currentTarget.style.background = 'var(--accent2)'; e.currentTarget.style.color = '#0e0e0e'; e.currentTarget.style.borderColor = 'var(--accent2)'; }}
-                  onMouseLeave={e => { e.currentTarget.style.background = 'var(--surface3)'; e.currentTarget.style.color = 'var(--text-dim)'; e.currentTarget.style.borderColor = 'var(--border)'; }}
-                >
-                  {p}
-                </button>
+                <button key={p} onMouseDown={e=>{e.preventDefault();const s=parseDuration(p);update('duration',s);setDurStr(p);setShowPresets(false);}}
+                  style={{ padding:'3px 7px', background:'var(--surface)', color:'var(--text-dim)', borderRadius:3, fontSize:'0.7rem', border:'1px solid var(--border)', cursor:'pointer' }}
+                  onMouseEnter={e=>{e.currentTarget.style.background='var(--orange)';e.currentTarget.style.color='white';e.currentTarget.style.borderColor='var(--orange)';}}
+                  onMouseLeave={e=>{e.currentTarget.style.background='var(--surface)';e.currentTarget.style.color='var(--text-dim)';e.currentTarget.style.borderColor='var(--border)';}}
+                >{p}</button>
               ))}
             </div>
           )}
         </div>
 
-        {/* Type */}
-        <select
-          value={item.type}
-          onChange={e => update('type', e.target.value)}
-          style={inputStyle}
-        >
-          {TYPE_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-        </select>
-
-        {/* Danish */}
-        <div style={{ textAlign: 'center' }}>
-          <input
-            type="checkbox"
-            checked={!!item.isDanish}
-            onChange={e => update('isDanish', e.target.checked)}
-            disabled={!isSong}
-            style={{ width: 15, height: 15, accentColor: 'var(--accent2)', cursor: isSong ? 'pointer' : 'default' }}
-          />
-        </div>
+        {/* DK */}
+        <ToggleBadgeComp label="DK" active={!!item.isDanish} color="var(--blue)"
+          onClick={isSong ? ()=>update('isDanish',!item.isDanish) : undefined}
+          disabled={!isSong}
+          title={isSong?(item.isDanish?'Danish — click to remove':'Mark as Danish'):''} />
 
         {/* P6 */}
-        <div style={{ textAlign: 'center' }}>
-          <input
-            type="checkbox"
-            checked={!!item.isP6Beat}
-            onChange={e => update('isP6Beat', e.target.checked)}
-            disabled={!isSong}
-            style={{ width: 15, height: 15, accentColor: 'var(--accent2)', cursor: isSong ? 'pointer' : 'default' }}
-          />
-        </div>
+        <ToggleBadgeComp label="P6" active={!!item.isP6Beat} color="var(--blue)"
+          onClick={isSong ? ()=>update('isP6Beat',!item.isP6Beat) : undefined}
+          disabled={!isSong}
+          title={isSong?(item.isP6Beat?'P6 Beat — click to remove':'Mark as P6 Beat'):''} />
 
         {/* Diskoteket */}
-        <div style={{ textAlign: 'center' }}>
-          {isSong ? (
-            <button
-              onClick={() => update('diskoteketCleared', !item.diskoteketCleared)}
-              title={item.diskoteketCleared ? 'Cleared in Diskoteket — click to unmark' : 'Not cleared — click to mark'}
-              style={{
-                background: 'transparent',
-                color: diskColor,
-                fontSize: '0.78rem',
-                fontWeight: 700,
-                padding: '2px 5px',
-                borderRadius: 3,
-                border: `1px solid ${diskColor}`,
-                cursor: 'pointer',
-                lineHeight: 1,
-              }}
-            >
-              {item.diskoteketCleared ? '✓' : '⚠'}
-            </button>
-          ) : (
-            <span style={{ color: 'var(--text-muted)', fontSize: '0.7rem' }}>—</span>
-          )}
-        </div>
+        {isSong ? (
+          <button onClick={()=>update('diskoteketCleared',!item.diskoteketCleared)}
+            title={item.diskoteketCleared?'Cleared in Diskoteket':'Not cleared — click to mark'}
+            style={{ background:'transparent', fontSize:'0.7rem', fontWeight:700, padding:'1px 3px', borderRadius:3,
+              border:`1px solid ${item.diskoteketCleared?'var(--green)':'var(--red)'}`,
+              color:item.diskoteketCleared?'var(--green)':'var(--red)', cursor:'pointer', lineHeight:1 }}>
+            {item.diskoteketCleared?'✓':'!'}
+          </button>
+        ) : <span style={{ color:'var(--border)', fontSize:'0.7rem', textAlign:'center' }}>—</span>}
 
         {/* Delete */}
-        <button
-          onClick={() => onRemove(item.id)}
-          style={{
-            background: 'transparent', color: 'var(--text-muted)',
-            padding: '3px 6px', borderRadius: 4, fontSize: '0.8rem',
-            border: '1px solid transparent',
-          }}
-          onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--red)'; }}
-          onMouseLeave={e => { e.currentTarget.style.borderColor = 'transparent'; e.currentTarget.style.color = 'var(--text-muted)'; }}
-        >
-          ×
-        </button>
+        <button onClick={()=>onRemove(item.id)}
+          style={{ background:'transparent', color:'var(--border)', padding:'2px 3px', borderRadius:3, fontSize:'0.85rem', border:'1px solid transparent', lineHeight:1 }}
+          onMouseEnter={e=>{e.currentTarget.style.color='var(--red)';e.currentTarget.style.borderColor='var(--border-light)';}}
+          onMouseLeave={e=>{e.currentTarget.style.color='var(--border)';e.currentTarget.style.borderColor='transparent';}}>×</button>
       </div>
     </div>
   );
