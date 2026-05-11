@@ -231,36 +231,36 @@ export default function App() {
           )}
         </div>
 
-        {/* Stats bar */}
+        {/* Stats bar — light background */}
         {activeEpisode && (
-          <div style={{ background:'var(--navy)', padding:'8px 22px', display:'flex', alignItems:'center', borderBottom:'2px solid var(--navy-border)', flexShrink:0, gap:0 }}>
+          <div style={{ background:'var(--surface)', padding:'10px 22px', display:'flex', alignItems:'center', borderBottom:'1px solid var(--border)', flexShrink:0, gap:0 }}>
             {/* Total */}
-            <div style={{ paddingRight:20, marginRight:20, borderRight:'1px solid var(--navy-border)' }}>
-              <div style={{ fontSize:'0.56rem', color:'var(--navy-muted)', letterSpacing:'0.1em', fontWeight:700, marginBottom:1 }}>TOTAL</div>
-              <div style={{ fontSize:'1.25rem', fontFamily:'Fraunces, serif', color:'white', lineHeight:1 }}>{formatDuration(totalSecs)}</div>
-              <div style={{ fontSize:'0.6rem', color:'var(--navy-muted)' }}>of 1:55:00</div>
+            <div style={{ paddingRight:20, marginRight:20, borderRight:'1px solid var(--border)' }}>
+              <div style={{ fontSize:'0.56rem', color:'var(--text-muted)', letterSpacing:'0.1em', fontWeight:700, marginBottom:1 }}>TOTAL</div>
+              <div style={{ fontSize:'1.25rem', fontFamily:'Fraunces, serif', color:'var(--text)', lineHeight:1 }}>{formatDuration(totalSecs)}</div>
+              <div style={{ fontSize:'0.6rem', color:'var(--text-muted)' }}>of 1:55:00</div>
             </div>
             {[1,2].map(h => {
               const used = blockSecs[h-1];
               const rem = 55*60 - used;
               const over = rem < 0;
               const tight = !over && rem < 5*60;
-              const col = over ? '#e05050' : tight ? '#d4b96a' : '#c8c4d8';
+              const col = over ? 'var(--red)' : tight ? 'var(--yellow)' : 'var(--text)';
               return (
-                <div key={h} style={{ paddingRight:20, marginRight:20, borderRight:'1px solid var(--navy-border)' }}>
-                  <div style={{ fontSize:'0.56rem', color:'var(--navy-muted)', letterSpacing:'0.1em', fontWeight:700, marginBottom:1 }}>HOUR {h}</div>
+                <div key={h} style={{ paddingRight:20, marginRight:20, borderRight:'1px solid var(--border)' }}>
+                  <div style={{ fontSize:'0.56rem', color:'var(--text-muted)', letterSpacing:'0.1em', fontWeight:700, marginBottom:1 }}>HOUR {h}</div>
                   <div style={{ fontSize:'1.25rem', fontFamily:'Fraunces, serif', color:col, lineHeight:1 }}>
                     {over ? `+${formatDuration(Math.abs(rem))}` : formatDuration(rem)}
                   </div>
-                  <div style={{ fontSize:'0.6rem', color:'var(--navy-muted)' }}>{formatDuration(used)} used</div>
+                  <div style={{ fontSize:'0.6rem', color:'var(--text-muted)' }}>{formatDuration(used)} used</div>
                 </div>
               );
             })}
             {[['DANISH', quotas.danishPct, quotas.danishSecs], ['P6 BEAT', quotas.p6Pct, quotas.p6Secs]].map(([label, pct, secs]) => (
-              <div key={label} style={{ paddingRight:20, marginRight:20, borderRight:'1px solid var(--navy-border)' }}>
-                <div style={{ fontSize:'0.56rem', color:'var(--navy-muted)', letterSpacing:'0.1em', fontWeight:700, marginBottom:1 }}>{label}</div>
-                <div style={{ fontSize:'1.25rem', fontFamily:'Fraunces, serif', color: pct>=30 ? '#6db88a' : '#e05050', lineHeight:1 }}>{pct.toFixed(0)}%</div>
-                <div style={{ fontSize:'0.6rem', color:'var(--navy-muted)' }}>min 30% · {formatDuration(secs)}</div>
+              <div key={label} style={{ paddingRight:20, marginRight:20, borderRight:'1px solid var(--border)' }}>
+                <div style={{ fontSize:'0.56rem', color:'var(--text-muted)', letterSpacing:'0.1em', fontWeight:700, marginBottom:1 }}>{label}</div>
+                <div style={{ fontSize:'1.25rem', fontFamily:'Fraunces, serif', color: pct>=30 ? 'var(--green)' : 'var(--red)', lineHeight:1 }}>{pct.toFixed(0)}%</div>
+                <div style={{ fontSize:'0.6rem', color:'var(--text-muted)' }}>min 30% · {formatDuration(secs)}</div>
               </div>
             ))}
           </div>
