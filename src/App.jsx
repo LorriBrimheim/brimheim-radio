@@ -120,28 +120,104 @@ export default function App() {
   };
 
   const buildNotes = () => {
+    const W = 48;
+    const hr = '─'.repeat(W);
+    const dbl = '═'.repeat(W);
     const lines = [];
-    lines.push(`SHOW NOTES — ${activeEpisode?.title || 'Episode'}`);
-    if (activeEpisode?.guestName) lines.push(`Guest: ${activeEpisode.guestName}`);
-    lines.push(fmtEpDate(activeEpisode?.createdAt), '');
-    const itemsWithNotes = items.filter(i => i.memo?.trim());
-    if (itemsWithNotes.length > 0) {
-      lines.push('ITEM NOTES', '─'.repeat(40), '');
-      itemsWithNotes.forEach(item => {
-        const num = String(items.indexOf(item) + 1).padStart(2, '0');
-        const label = item.type === ITEM_TYPES.SONG
-          ? `#${num}  ${item.title || 'Untitled'}${item.artist ? ' — ' + item.artist : ''}`
-          : `#${num}  SPEAK${item.notes ? ': ' + item.notes : ''}`;
-        lines.push(label, `   ${item.memo}`, '');
+
+    // Header
+    lines.push(dbl);
+    lines.push(`  SHOW NOTES`);
+    lines.push(`  ${activeEpisode?.title || 'Episode'}  ·  ${fmtEpDate(activeEpisode?.createdAt)}`);
+    if (activeEpisode?.guestName) lines.push(`  Guest: ${activeEpisode.guestName}`);
+    lines.push(dbl, '');
+
+    const h1 = items.filter(i => (i.hour || 1) === 1);
+    const h2 = items.filter(i => (i.hour || 1) === 2);
+
+    const renderHourNotes = (hourItems, hourNum) => {
+      const withNotes = hourItems.filter(i => i.memo?.trim());
+      if (!withNotes.length) return;
+      lines.push(`  ▸ HOUR ${hourNum}`);
+      lines.push(`  ${hr}`);
+      withNotes.forEach(item => {
+        const num = String(hourItems.indexOf(item) + 1).padStart(2, '0');
+        if (item.type === ITEM_TYPES.SONG) {
+          lines.push(`  #${num}  ${item.title || 'Untitled'}${item.artist ? ' — ' + item.artist : ''}`);
+        } else {
+          lines.push(`  #${num}  SPEAK${item.notes ? ': ' + item.notes : ''}`);
+        }
+        item.memo.trim().split('\n').forEach(l => lines.push(`       ${l}`));
+        lines.push('');
       });
+    };
+
+    const anyItemNotes = items.some(i => i.memo?.trim());
+    if (anyItemNotes) {
+      renderHourNotes(h1, 1);
+      renderHourNotes(h2, 2);
+    } else {
+      lines.push('  (no item notes added yet)', '');
     }
+
     const gn = activeEpisode?.generalNotes?.trim();
-    if (gn) { lines.push('GENERAL NOTES', '─'.repeat(40), '', gn); }
-    if (!itemsWithNotes.length && !gn) lines.push('(no notes added yet)');
+    if (gn) {
+      lines.push(`  ▸ GENERAL NOTES`);
+      lines.push(`  ${hr}`);
+      gn.split('\n').forEach(l => lines.push(`  ${l}`));
+      lines.push('');
+    }
+
+    lines.push(dbl);
     return lines.join('\n');
   };
 
-  const buildBoth = () => buildText() + '\n\n' + '═'.repeat(40) + '\n\n' + buildNotes();
+  const buildText = () => {
+    const W = 48;
+    const hr = '─'.repeat(W);
+    const dbl = '═'.repeat(W);
+    let cumSecs = 0, newsIn = false, lines = [];
+
+    lines.push(dbl);
+    lines.push(`  RADIO RUNDOWN`);
+    lines.push(`  ${activeEpisode?.title || 'Episode'}  ·  ${fmtEpDate(activeEpisode?.createdAt)}`);
+    if (activeEpisode?.guestName) lines.push(`  Guest: ${activeEpisode.guestName}`);
+    lines.push(`  Danish: ${quotas.danishPct.toFixed(1)}%   P6 Beat: ${quotas.p6Pct.toFixed(1)}%`);
+    lines.push(dbl, '');
+
+    const h1 = items.filter(i => (i.hour || 1) === 1);
+    const h2 = items.filter(i => (i.hour || 1) === 2);
+
+    const renderHour = (hourItems, hourNum, startSecs) => {
+      lines.push(`  ▸ HOUR ${hourNum}`);
+      lines.push(`  ${hr}`);
+      let cur = startSecs;
+      hourItems.forEach((item, idx) => {
+        const ts = formatTimestamp(cur);
+        const num = String(idx + 1).padStart(2, '0');
+        if (item.type === ITEM_TYPES.SONG) {
+          const tags = [item.isDanish&&'DK', item.isP6Beat&&'P6', item.segment==='guest'&&'GP', !item.diskoteketCleared&&'⚠ DISK'].filter(Boolean);
+          const tagStr = tags.length ? `  [${tags.join(' · ')}]` : '';
+          lines.push(`  ${ts}  #${num}  ${item.title || 'Untitled'}${item.artist ? ' — ' + item.artist : ''}  ${formatDuration(item.duration)}${tagStr}`);
+        } else {
+          lines.push(`  ${ts}  #${num}  🎙 SPEAK  ${formatDuration(item.duration)}${item.notes ? '  — ' + item.notes : ''}`);
+        }
+        cur += item.duration || 0;
+      });
+      lines.push('');
+      return cur;
+    };
+
+    const afterH1 = renderHour(h1, 1, 0);
+    lines.push(`  ···  NEWS BREAK  55:00 → 60:00  ···`, '');
+    renderHour(h2, 2, afterH1 + (5 * 60));
+    lines.push(hr);
+    lines.push(`  Total: ${formatDuration(items.reduce((s, i) => s + (i.duration || 0), 0))}`);
+    lines.push(dbl);
+    return lines.join('\n');
+  };
+
+  const buildBoth = () => buildText() + '\n\n\n' + buildNotes();
 
   const doCopy = async (text) => {
     await navigator.clipboard.writeText(text);
@@ -356,7 +432,7 @@ export default function App() {
             {/* ── General Notes ── */}
             <div style={{ marginTop:20, paddingTop:16, borderTop:'2px solid var(--border)' }}>
               <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:8 }}>
-                <span style={{ fontSize:'0.6rem', color:'#6840a8', fontWeight:700, letterSpacing:'0.1em' }}>✎ SHOW NOTES</span>
+                <span style={{ fontSize:'0.6rem', color:'#2e5aaa', fontWeight:700, letterSpacing:'0.1em' }}>✎ SHOW NOTES</span>
                 <span style={{ fontSize:'0.6rem', color:'var(--text-muted)' }}>general ideas, guest questions, anything</span>
               </div>
               <textarea
@@ -367,12 +443,12 @@ export default function App() {
                 style={{
                   width:'100%', resize:'vertical', fontSize:'0.82rem',
                   padding:'10px 14px', background:'white',
-                  border:'1px solid #d0b8f0', borderRadius:6,
+                  border:'1px solid #b0bcd8', borderRadius:6,
                   color:'var(--text-dim)', fontFamily:'inherit', lineHeight:1.65,
                   minHeight:100, outline:'none',
                 }}
-                onFocus={e => e.currentTarget.style.borderColor = '#6840a8'}
-                onBlur={e => e.currentTarget.style.borderColor = '#d0b8f0'}
+                onFocus={e => e.currentTarget.style.borderColor = '#2e5aaa'}
+                onBlur={e => e.currentTarget.style.borderColor = '#b0bcd8'}
               />
             </div>
           </div>
