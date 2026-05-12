@@ -49,11 +49,11 @@ const HourHeader = ({ num, usedSecs, itemCount, bgColor }) => {
 const ColHeader = () => (
   <div style={{
     display: 'grid',
-    gridTemplateColumns: '18px 48px 1fr 46px 28px 28px 26px 20px',
+    gridTemplateColumns: '18px 48px 1fr 46px 28px 28px 26px 20px 20px',
     gap: 4, padding: '5px 10px 4px', background: 'var(--surface)',
     borderBottom: '1px solid var(--border)',
   }}>
-    {['', '', 'Title / Artist', 'Dur', 'DK', 'P6', 'Disk', ''].map((c, i) => (
+    {['', '', 'Title / Artist', 'Dur', 'DK', 'P6', 'Disk', '', ''].map((c, i) => (
       <div key={i} style={{ fontSize: '0.58rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.07em', fontWeight: 700 }}>{c}</div>
     ))}
   </div>
@@ -165,7 +165,7 @@ export default function Rundown({ items, onReorder, onRemove, onUpdate, onAdd })
     id: generateId(), type, segment: 'solo', hour,
     title: '', artist: '', duration: 0,
     isDanish: false, isP6Beat: false, isGuest: false,
-    diskoteketCleared: false, notes: '',
+    diskoteketCleared: false, notes: '', memo: '',
   });
 
   return (
