@@ -13,7 +13,7 @@ const fmtEpDate = (iso) => {
 
 const defaultEpisode = () => ({
   id: Date.now().toString(), title: '', guestName: '', items: [],
-  createdAt: new Date().toISOString(),
+  createdAt: new Date().toISOString(), generalNotes: '',
 });
 
 const migrateEpisode = (ep) => {
@@ -119,16 +119,41 @@ export default function App() {
     return lines.join('\n');
   };
 
-  const handleCopy = async () => {
-    await navigator.clipboard.writeText(buildText());
+  const buildNotes = () => {
+    const lines = [];
+    lines.push(`SHOW NOTES — ${activeEpisode?.title || 'Episode'}`);
+    if (activeEpisode?.guestName) lines.push(`Guest: ${activeEpisode.guestName}`);
+    lines.push(fmtEpDate(activeEpisode?.createdAt), '');
+    const itemsWithNotes = items.filter(i => i.memo?.trim());
+    if (itemsWithNotes.length > 0) {
+      lines.push('ITEM NOTES', '─'.repeat(40), '');
+      itemsWithNotes.forEach(item => {
+        const num = String(items.indexOf(item) + 1).padStart(2, '0');
+        const label = item.type === ITEM_TYPES.SONG
+          ? `#${num}  ${item.title || 'Untitled'}${item.artist ? ' — ' + item.artist : ''}`
+          : `#${num}  SPEAK${item.notes ? ': ' + item.notes : ''}`;
+        lines.push(label, `   ${item.memo}`, '');
+      });
+    }
+    const gn = activeEpisode?.generalNotes?.trim();
+    if (gn) { lines.push('GENERAL NOTES', '─'.repeat(40), '', gn); }
+    if (!itemsWithNotes.length && !gn) lines.push('(no notes added yet)');
+    return lines.join('\n');
+  };
+
+  const buildBoth = () => buildText() + '\n\n' + '═'.repeat(40) + '\n\n' + buildNotes();
+
+  const doCopy = async (text) => {
+    await navigator.clipboard.writeText(text);
     setExportMsg('Copied!'); setTimeout(() => setExportMsg(''), 3000);
     setShowExportMenu(false);
   };
-  const handleDownload = () => {
-    const blob = new Blob([buildText()], { type: 'text/plain' });
+  const doDownload = (text, suffix = '') => {
+    const blob = new Blob([text], { type: 'text/plain' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a'); a.href = url;
-    a.download = `${(activeEpisode?.title||'rundown').replace(/\s+/g,'-').toLowerCase()}.txt`;
+    const base = (activeEpisode?.title || 'rundown').replace(/\s+/g, '-').toLowerCase();
+    a.download = `${base}${suffix}.txt`;
     a.click(); URL.revokeObjectURL(url); setShowExportMenu(false);
   };
 
@@ -245,12 +270,22 @@ export default function App() {
                   {exportMsg || 'EXPORT'}
                 </button>
                 {showExportMenu && (
-                  <div style={{ position:'absolute', right:0, top:'calc(100% + 6px)', background:'white', border:'1px solid var(--border)', borderRadius:6, padding:6, zIndex:200, minWidth:190, boxShadow:'0 8px 24px rgba(0,0,0,0.15)' }}>
-                    {[['📋 Copy for Google Doc', handleCopy], ['⬇ Download .txt', handleDownload]].map(([label, fn]) => (
-                      <button key={label} onClick={fn} style={{ display:'block', width:'100%', padding:'8px 12px', background:'transparent', color:'var(--text-dim)', fontSize:'0.78rem', textAlign:'left', borderRadius:4, border:'none' }}
-                        onMouseEnter={e=>e.currentTarget.style.background='var(--surface)'}
-                        onMouseLeave={e=>e.currentTarget.style.background='transparent'}
-                      >{label}</button>
+                  <div style={{ position:'absolute', right:0, top:'calc(100% + 6px)', background:'white', border:'1px solid var(--border)', borderRadius:6, padding:'6px 0', zIndex:200, minWidth:210, boxShadow:'0 8px 24px rgba(0,0,0,0.15)' }}>
+                    {[
+                      { section: 'RUNDOWN', items: [['📋 Copy', () => doCopy(buildText())], ['⬇ Download .txt', () => doDownload(buildText())]] },
+                      { section: 'NOTES', items: [['📋 Copy', () => doCopy(buildNotes())], ['⬇ Download .txt', () => doDownload(buildNotes(), '-notes')]] },
+                      { section: 'RUNDOWN + NOTES', items: [['📋 Copy both', () => doCopy(buildBoth())], ['⬇ Download .txt', () => doDownload(buildBoth(), '-full')]] },
+                    ].map(({ section, items: btns }, si) => (
+                      <div key={section}>
+                        {si > 0 && <div style={{ height:1, background:'var(--border)', margin:'4px 0' }} />}
+                        <div style={{ fontSize:'0.52rem', color:'var(--text-muted)', letterSpacing:'0.1em', fontWeight:700, padding:'4px 14px 2px' }}>{section}</div>
+                        {btns.map(([label, fn]) => (
+                          <button key={label} onClick={fn} style={{ display:'block', width:'100%', padding:'6px 14px', background:'transparent', color:'var(--text-dim)', fontSize:'0.78rem', textAlign:'left', border:'none' }}
+                            onMouseEnter={e=>e.currentTarget.style.background='var(--surface)'}
+                            onMouseLeave={e=>e.currentTarget.style.background='transparent'}
+                          >{label}</button>
+                        ))}
+                      </div>
                     ))}
                   </div>
                 )}
@@ -317,6 +352,29 @@ export default function App() {
               </div>
             )}
             <Rundown items={items} onReorder={reorderItems} onRemove={removeItem} onUpdate={updateItem} onAdd={addItem} />
+
+            {/* ── General Notes ── */}
+            <div style={{ marginTop:20, paddingTop:16, borderTop:'2px solid var(--border)' }}>
+              <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:8 }}>
+                <span style={{ fontSize:'0.6rem', color:'#6840a8', fontWeight:700, letterSpacing:'0.1em' }}>✎ SHOW NOTES</span>
+                <span style={{ fontSize:'0.6rem', color:'var(--text-muted)' }}>general ideas, guest questions, anything</span>
+              </div>
+              <textarea
+                value={activeEpisode.generalNotes || ''}
+                onChange={e => updateEpisode(activeId, () => ({ generalNotes: e.target.value }))}
+                placeholder={'Guest questions to ask...\nFun facts to mention...\nIdeas for transitions...\nAnything on your mind before the show...'}
+                rows={5}
+                style={{
+                  width:'100%', resize:'vertical', fontSize:'0.82rem',
+                  padding:'10px 14px', background:'white',
+                  border:'1px solid #d0b8f0', borderRadius:6,
+                  color:'var(--text-dim)', fontFamily:'inherit', lineHeight:1.65,
+                  minHeight:100, outline:'none',
+                }}
+                onFocus={e => e.currentTarget.style.borderColor = '#6840a8'}
+                onBlur={e => e.currentTarget.style.borderColor = '#d0b8f0'}
+              />
+            </div>
           </div>
         )}
       </div>
