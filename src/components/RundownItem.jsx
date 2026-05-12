@@ -40,8 +40,11 @@ export default function RundownItem({ item, rowNum, onRemove, onUpdate, cumSecs 
   const [searching, setSearching] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
   const [showPresets, setShowPresets] = useState(false);
+  const [showNotes, setShowNotes] = useState(false);
+  const [memoText, setMemoText] = useState(item.memo || '');
   const dropdownRef = useRef(null);
   const presetsRef = useRef(null);
+  const memoRef = useRef(null);
 
   const debouncedQuery = useDebounce(isSong ? titleArtist : '', 420);
 
@@ -51,6 +54,7 @@ export default function RundownItem({ item, rowNum, onRemove, onUpdate, cumSecs 
   }, [item.type]);
 
   useEffect(() => { setDurStr(item.duration > 0 ? formatDuration(item.duration) : ''); }, [item.id]);
+  useEffect(() => { setMemoText(item.memo || ''); setShowNotes(false); }, [item.id]);
 
   useEffect(() => {
     if (!isSong || debouncedQuery.length < 3) { setSearchResults([]); setShowDropdown(false); return; }
@@ -74,6 +78,10 @@ export default function RundownItem({ item, rowNum, onRemove, onUpdate, cumSecs 
     return () => document.removeEventListener('mousedown', h);
   }, []);
 
+  useEffect(() => {
+    if (showNotes && memoRef.current) memoRef.current.focus();
+  }, [showNotes]);
+
   const selectResult = (r) => {
     onUpdate(item.id, { title:r.title, artist:r.artist, duration:r.duration });
     setTitleArtist(`${r.title} — ${r.artist}`); setDurStr(formatDuration(r.duration));
@@ -81,6 +89,7 @@ export default function RundownItem({ item, rowNum, onRemove, onUpdate, cumSecs 
   };
 
   const update = (f, v) => onUpdate(item.id, { [f]: v });
+  const saveMemo = () => update('memo', memoText);
 
   const handleTitleBlur = () => {
     if (isSong) { const p = titleArtist.split(' — '); onUpdate(item.id, { title:p[0].trim(), artist:p.slice(1).join(' — ').trim() }); }
@@ -95,16 +104,18 @@ export default function RundownItem({ item, rowNum, onRemove, onUpdate, cumSecs 
   const toggleGuest = () => { const ng = isGuest ? 'solo' : 'guest'; onUpdate(item.id, { segment:ng, isGuest: ng==='guest' }); };
 
   const timestamp = formatDuration(cumSecs);
+  const hasMemo = !!(item.memo?.trim());
 
   return (
     <div ref={setNodeRef} style={{ transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.3 : 1 }}>
+      {/* ── Main row ── */}
       <div style={{
         display: 'grid',
-        gridTemplateColumns: '18px 44px 1fr 46px 28px 28px 26px 18px',
+        gridTemplateColumns: '18px 44px 1fr 46px 28px 28px 26px 20px 18px',
         gap: 4, alignItems: 'center',
         padding: '6px 10px',
         background: isSpeakOver ? 'rgba(192,48,48,0.05)' : rowNum % 2 === 0 ? 'var(--surface)' : 'var(--surface2)',
-        borderBottom: '1px solid var(--border-light)',
+        borderBottom: showNotes ? 'none' : '1px solid var(--border-light)',
       }}>
 
         {/* Drag */}
@@ -136,7 +147,6 @@ export default function RundownItem({ item, rowNum, onRemove, onUpdate, cumSecs 
                   placeholder="Title — Artist"
                   style={{ fontSize:'0.8rem', padding:'2px 4px', flex:1, minWidth:0, background:'transparent', border:'none', borderBottom:'1px solid var(--border)', borderRadius:0, color:'var(--text)' }} />
                 {searching && <span style={{ fontSize:'0.6rem', color:'var(--text-muted)', flexShrink:0 }}>···</span>}
-                {/* Guest pick badge — click to toggle */}
                 <button onClick={toggleGuest}
                   title={isGuest ? 'Guest pick — click to remove' : 'Click to mark as guest pick'}
                   style={{
@@ -152,7 +162,6 @@ export default function RundownItem({ item, rowNum, onRemove, onUpdate, cumSecs 
                 >{isGuest ? 'GUEST PICK' : 'GP'}</button>
               </div>
 
-              {/* iTunes dropdown */}
               {showDropdown && searchResults.length > 0 && (
                 <div style={{ position:'absolute', top:'calc(100% + 2px)', left:0, right:0, background:'var(--surface3)', border:'1px solid var(--orange)', borderRadius:5, zIndex:200, boxShadow:'0 6px 20px rgba(0,0,0,0.15)', overflow:'hidden' }}>
                   {searchResults.map((r,i) => (
@@ -215,12 +224,61 @@ export default function RundownItem({ item, rowNum, onRemove, onUpdate, cumSecs 
           </button>
         ) : <span style={{ color:'var(--border)', fontSize:'0.7rem', textAlign:'center' }}>—</span>}
 
+        {/* Notes pencil */}
+        <button onClick={() => setShowNotes(o => !o)}
+          title={hasMemo ? 'View/edit notes' : 'Add notes'}
+          style={{
+            background: showNotes ? 'rgba(104,64,168,0.1)' : 'transparent',
+            color: hasMemo ? '#6840a8' : '#b0a898',
+            padding:'2px 3px', borderRadius:3, fontSize:'0.78rem',
+            border: showNotes ? '1px solid #6840a8' : '1px solid transparent',
+            lineHeight:1, transition:'all 0.12s', position:'relative',
+          }}
+          onMouseEnter={e=>{ e.currentTarget.style.color='#6840a8'; e.currentTarget.style.borderColor='#c8b0e8'; }}
+          onMouseLeave={e=>{ e.currentTarget.style.color=hasMemo?'#6840a8':'#b0a898'; e.currentTarget.style.borderColor=showNotes?'#6840a8':'transparent'; }}
+        >
+          ✎{hasMemo && <span style={{ position:'absolute', top:0, right:0, width:5, height:5, borderRadius:'50%', background:'#6840a8', display:'block' }} />}
+        </button>
+
         {/* Delete */}
         <button onClick={()=>onRemove(item.id)}
           style={{ background:'transparent', color:'#a09890', padding:'2px 3px', borderRadius:3, fontSize:'0.85rem', border:'1px solid transparent', lineHeight:1 }}
           onMouseEnter={e=>{e.currentTarget.style.color='var(--red)';e.currentTarget.style.borderColor='var(--border)';}}
           onMouseLeave={e=>{e.currentTarget.style.color='#a09890';e.currentTarget.style.borderColor='transparent';}}>×</button>
       </div>
+
+      {/* ── Notes panel ── */}
+      {showNotes && (
+        <div style={{
+          padding:'8px 10px 10px 76px',
+          background: rowNum % 2 === 0 ? 'var(--surface)' : 'var(--surface2)',
+          borderBottom:'2px solid #c8b0e8',
+          borderTop:'1px solid var(--border-light)',
+        }}>
+          <div style={{ display:'flex', alignItems:'center', gap:6, marginBottom:5 }}>
+            <span style={{ fontSize:'0.55rem', color:'#6840a8', fontWeight:700, letterSpacing:'0.1em' }}>PREP NOTES</span>
+            {hasMemo && <span style={{ fontSize:'0.55rem', color:'var(--text-muted)' }}>· saved</span>}
+          </div>
+          <textarea ref={memoRef}
+            value={memoText}
+            onChange={e => setMemoText(e.target.value)}
+            onBlur={saveMemo}
+            placeholder={isSong
+              ? 'Fun facts, talking points, why you chose this song, questions sparked by it…'
+              : 'Questions for guest, bullet points to cover, background info…'}
+            rows={3}
+            style={{
+              width:'100%', resize:'vertical', fontSize:'0.78rem',
+              padding:'7px 10px', background:'white',
+              border:'1px solid #d0b8f0', borderRadius:5,
+              color:'var(--text-dim)', fontFamily:'inherit', lineHeight:1.6,
+              minHeight:62, outline:'none',
+            }}
+            onFocus={e => e.currentTarget.style.borderColor = '#6840a8'}
+            onBlur={e => { e.currentTarget.style.borderColor = '#d0b8f0'; saveMemo(); }}
+          />
+        </div>
+      )}
     </div>
   );
 }
