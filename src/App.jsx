@@ -99,26 +99,6 @@ export default function App() {
   const blockSecs = calcBlockSecs(items);
 
   // Export helpers
-  const buildText = () => {
-    let cumSecs = 0, newsIn = false, lines = [];
-    lines.push(`RADIO RUNDOWN — ${activeEpisode?.title || 'Episode'}`);
-    if (activeEpisode?.guestName) lines.push(`Guest: ${activeEpisode.guestName}`);
-    lines.push('', `Danish: ${quotas.danishPct.toFixed(1)}%  |  P6 Beat: ${quotas.p6Pct.toFixed(1)}%`, '', '─'.repeat(40), '');
-    items.forEach((item, i) => {
-      const start = cumSecs;
-      if (!newsIn && start >= HOUR1_END) { lines.push('', '[ NEWS BREAK — 5 min ]', ''); newsIn = true; }
-      if (item.type === ITEM_TYPES.SONG) {
-        const tags = [item.isDanish&&'DK', item.isP6Beat&&'P6', item.segment==='guest'&&'Guest pick', !item.diskoteketCleared&&'⚠ DISKOTEKET'].filter(Boolean);
-        lines.push(`${formatTimestamp(start)}  #${i+1}  ${item.title}${item.artist?' — '+item.artist:''}  [${formatDuration(item.duration)}]${tags.length?'  · '+tags.join(', '):''}`);
-      } else {
-        lines.push(`${formatTimestamp(start)}  🎙 SPEAK  [${formatDuration(item.duration)}]${item.notes?'  — '+item.notes:''}`);
-      }
-      cumSecs += item.duration || 0;
-    });
-    lines.push('', '─'.repeat(40), `Show end: ${formatTimestamp(cumSecs)}`);
-    return lines.join('\n');
-  };
-
   const buildNotes = () => {
     const W = 48;
     const hr = '─'.repeat(W);
