@@ -100,7 +100,7 @@ export default function App() {
 
   // Export helpers
   const buildNotes = () => {
-    const div = '─'.repeat(44);
+    const div = '─'.repeat(54);
     const lines = [];
     const ep = activeEpisode;
 
@@ -118,11 +118,12 @@ export default function App() {
       lines.push(div);
       withNotes.forEach((item, noteIdx) => {
         const num = String(noteIdx + 1).padStart(2, '0');
-        const label = item.type === ITEM_TYPES.SONG
-          ? `#${num}  ${item.title || 'Untitled'}${item.artist ? '  —  ' + item.artist : ''}`
-          : `#${num}  SPEAK${item.notes ? ':  ' + item.notes : ''}`;
-        lines.push(label);
-        item.memo.trim().split('\n').forEach(l => lines.push(`     ${l}`));
+        if (item.type === ITEM_TYPES.SONG) {
+          lines.push(`#${num}  ${item.title || 'Untitled'}${item.artist ? '  —  ' + item.artist : ''}`);
+        } else {
+          lines.push(`#${num}  SPEAK${item.notes ? ':  ' + item.notes : ''}`);
+        }
+        item.memo.trim().split('\n').forEach(l => lines.push(`       ${l}`));
         lines.push('');
       });
     };
@@ -187,65 +188,10 @@ export default function App() {
     return lines.join('\n');
   };
 
-  const buildNotesHtml = () => {
-    const ep = activeEpisode;
-    const h1 = items.filter(i => (i.hour || 1) === 1);
-    const h2 = items.filter(i => (i.hour || 1) === 2);
-    let html = `<div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;max-width:680px;color:#1a1814;line-height:1.5;">`;
-    html += `<p style="font-size:1.15em;font-weight:700;margin:0 0 2px;">${ep?.title || 'Episode'}</p>`;
-    html += `<p style="color:#888;font-size:0.88em;margin:0 0 20px;">${fmtEpDate(ep?.createdAt)}${ep?.guestName ? '&nbsp;·&nbsp;Guest: <strong>' + ep.guestName + '</strong>' : ''}</p>`;
-    const renderHour = (hourItems, hourNum) => {
-      const withNotes = hourItems.filter(i => i.memo?.trim());
-      if (!withNotes.length) return;
-      html += `<p style="font-size:0.72em;font-weight:700;letter-spacing:0.1em;color:#888;text-transform:uppercase;margin:24px 0 4px;">HOUR ${hourNum}</p>`;
-      html += `<hr style="border:none;border-top:1px solid #ddd;margin:0 0 14px;">`;
-      withNotes.forEach((item, noteIdx) => {
-        const num = String(noteIdx + 1).padStart(2, '0');
-        const title = item.type === ITEM_TYPES.SONG
-          ? `#${num}&nbsp;&nbsp;<strong>${item.title || 'Untitled'}</strong>${item.artist ? `&nbsp;—&nbsp;<span style="font-weight:400;">${item.artist}</span>` : ''}`
-          : `#${num}&nbsp;&nbsp;<strong>SPEAK</strong>${item.notes ? `&nbsp;—&nbsp;<span style="font-weight:400;">${item.notes}</span>` : ''}`;
-        html += `<p style="margin:0 0 5px;">${title}</p>`;
-        const escaped = item.memo.trim().replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/\n/g,'<br>');
-        html += `<p style="margin:0 0 18px;padding-left:22px;color:#3a6aaa;font-style:italic;">${escaped}</p>`;
-      });
-    };
-    const anyItemNotes = items.some(i => i.memo?.trim());
-    if (anyItemNotes) { renderHour(h1, 1); renderHour(h2, 2); }
-    else { html += `<p style="color:#aaa;font-style:italic;">(no item notes added yet)</p>`; }
-    const gn = ep?.generalNotes?.trim();
-    if (gn) {
-      html += `<p style="font-size:0.72em;font-weight:700;letter-spacing:0.1em;color:#888;text-transform:uppercase;margin:24px 0 4px;">GENERAL NOTES</p>`;
-      html += `<hr style="border:none;border-top:1px solid #ddd;margin:0 0 14px;">`;
-      html += `<p style="color:#3a6aaa;font-style:italic;">${gn.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/\n/g,'<br>')}</p>`;
-    }
-    html += `</div>`;
-    return html;
-  };
-
   const buildBoth = () => buildText() + '\n\n\n' + buildNotes();
 
   const doCopy = async (text) => {
     await navigator.clipboard.writeText(text);
-    setExportMsg('Copied!'); setTimeout(() => setExportMsg(''), 3000);
-    setShowExportMenu(false);
-  };
-  const doCopyRich = (html, plain) => {
-    // Render into a hidden offscreen div, select it, execCommand('copy')
-    // — this is the reliable cross-browser way to put rich text on the clipboard
-    const el = document.createElement('div');
-    el.innerHTML = html;
-    Object.assign(el.style, { position:'fixed', left:'-9999px', top:'0', opacity:'0', pointerEvents:'none' });
-    document.body.appendChild(el);
-    const range = document.createRange();
-    range.selectNodeContents(el);
-    const sel = window.getSelection();
-    sel.removeAllRanges();
-    sel.addRange(range);
-    let ok = false;
-    try { ok = document.execCommand('copy'); } catch {}
-    sel.removeAllRanges();
-    document.body.removeChild(el);
-    if (!ok) navigator.clipboard.writeText(plain).catch(() => {});
     setExportMsg('Copied!'); setTimeout(() => setExportMsg(''), 3000);
     setShowExportMenu(false);
   };
@@ -255,15 +201,6 @@ export default function App() {
     const a = document.createElement('a'); a.href = url;
     const base = (activeEpisode?.title || 'rundown').replace(/\s+/g, '-').toLowerCase();
     a.download = `${base}${suffix}.txt`;
-    a.click(); URL.revokeObjectURL(url); setShowExportMenu(false);
-  };
-  const doDownloadHtml = (html, suffix = '') => {
-    const full = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Show Notes</title><style>body{margin:40px auto;max-width:700px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;}</style></head><body>${html}</body></html>`;
-    const blob = new Blob([full], { type: 'text/html' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a'); a.href = url;
-    const base = (activeEpisode?.title || 'notes').replace(/\s+/g, '-').toLowerCase();
-    a.download = `${base}${suffix}.html`;
     a.click(); URL.revokeObjectURL(url); setShowExportMenu(false);
   };
 
@@ -383,8 +320,8 @@ export default function App() {
                   <div style={{ position:'absolute', right:0, top:'calc(100% + 6px)', background:'white', border:'1px solid var(--border)', borderRadius:6, padding:'6px 0', zIndex:200, minWidth:210, boxShadow:'0 8px 24px rgba(0,0,0,0.15)' }}>
                     {[
                       { section: 'RUNDOWN', items: [['📋 Copy', () => doCopy(buildText())], ['⬇ Download .txt', () => doDownload(buildText())]] },
-                      { section: 'NOTES', items: [['📋 Copy (formatted)', () => doCopyRich(buildNotesHtml(), buildNotes())], ['⬇ Download .html', () => doDownloadHtml(buildNotesHtml(), '-notes')]] },
-                      { section: 'RUNDOWN + NOTES', items: [['📋 Copy both', () => doCopyRich('<pre style="font-family:monospace;font-size:0.85em;color:#333;">' + buildText().replace(/&/g,'&amp;').replace(/</g,'&lt;') + '</pre><br><hr><br>' + buildNotesHtml(), buildBoth())], ['⬇ Download .html', () => doDownloadHtml('<pre style="font-family:monospace;font-size:0.85em;color:#333;white-space:pre-wrap;">' + buildText().replace(/&/g,'&amp;').replace(/</g,'&lt;') + '</pre><hr>' + buildNotesHtml(), '-full')]] },
+                      { section: 'NOTES', items: [['📋 Copy', () => doCopy(buildNotes())], ['⬇ Download .txt', () => doDownload(buildNotes(), '-notes')]] },
+                      { section: 'RUNDOWN + NOTES', items: [['📋 Copy both', () => doCopy(buildBoth())], ['⬇ Download .txt', () => doDownload(buildBoth(), '-full')]] },
                     ].map(({ section, items: btns }, si) => (
                       <div key={section}>
                         {si > 0 && <div style={{ height:1, background:'var(--border)', margin:'4px 0' }} />}
