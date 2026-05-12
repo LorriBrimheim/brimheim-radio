@@ -116,8 +116,8 @@ export default function App() {
       if (!withNotes.length) return;
       lines.push(`HOUR ${hourNum}`);
       lines.push(div);
-      withNotes.forEach(item => {
-        const num = String(hourItems.indexOf(item) + 1).padStart(2, '0');
+      withNotes.forEach((item, noteIdx) => {
+        const num = String(noteIdx + 1).padStart(2, '0');
         const label = item.type === ITEM_TYPES.SONG
           ? `#${num}  ${item.title || 'Untitled'}${item.artist ? '  —  ' + item.artist : ''}`
           : `#${num}  SPEAK${item.notes ? ':  ' + item.notes : ''}`;
