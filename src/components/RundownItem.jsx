@@ -228,16 +228,16 @@ export default function RundownItem({ item, rowNum, onRemove, onUpdate, cumSecs 
         <button onClick={() => setShowNotes(o => !o)}
           title={hasMemo ? 'View/edit notes' : 'Add notes'}
           style={{
-            background: showNotes ? 'rgba(104,64,168,0.1)' : 'transparent',
-            color: hasMemo ? '#6840a8' : '#b0a898',
-            padding:'2px 3px', borderRadius:3, fontSize:'0.78rem',
-            border: showNotes ? '1px solid #6840a8' : '1px solid transparent',
+            background: showNotes ? 'rgba(46,90,170,0.12)' : hasMemo ? 'rgba(46,90,170,0.08)' : 'transparent',
+            color: (hasMemo || showNotes) ? '#2e5aaa' : '#8090b0',
+            padding:'2px 4px', borderRadius:3, fontSize:'0.78rem', fontWeight: hasMemo ? 700 : 400,
+            border: `1px solid ${(showNotes || hasMemo) ? '#8090c8' : '#b0bcd8'}`,
             lineHeight:1, transition:'all 0.12s', position:'relative',
           }}
-          onMouseEnter={e=>{ e.currentTarget.style.color='#6840a8'; e.currentTarget.style.borderColor='#c8b0e8'; }}
-          onMouseLeave={e=>{ e.currentTarget.style.color=hasMemo?'#6840a8':'#b0a898'; e.currentTarget.style.borderColor=showNotes?'#6840a8':'transparent'; }}
+          onMouseEnter={e=>{ e.currentTarget.style.color='#2e5aaa'; e.currentTarget.style.background='rgba(46,90,170,0.12)'; e.currentTarget.style.borderColor='#2e5aaa'; }}
+          onMouseLeave={e=>{ e.currentTarget.style.color=(hasMemo||showNotes)?'#2e5aaa':'#8090b0'; e.currentTarget.style.background=showNotes?'rgba(46,90,170,0.12)':hasMemo?'rgba(46,90,170,0.08)':'transparent'; e.currentTarget.style.borderColor=(showNotes||hasMemo)?'#8090c8':'#b0bcd8'; }}
         >
-          ✎{hasMemo && <span style={{ position:'absolute', top:0, right:0, width:5, height:5, borderRadius:'50%', background:'#6840a8', display:'block' }} />}
+          ✎{hasMemo && <span style={{ position:'absolute', top:-1, right:-1, width:5, height:5, borderRadius:'50%', background:'#2e5aaa', display:'block' }} />}
         </button>
 
         {/* Delete */}
@@ -252,11 +252,11 @@ export default function RundownItem({ item, rowNum, onRemove, onUpdate, cumSecs 
         <div style={{
           padding:'8px 10px 10px 76px',
           background: rowNum % 2 === 0 ? 'var(--surface)' : 'var(--surface2)',
-          borderBottom:'2px solid #c8b0e8',
+          borderBottom:'2px solid #8090c8',
           borderTop:'1px solid var(--border-light)',
         }}>
           <div style={{ display:'flex', alignItems:'center', gap:6, marginBottom:5 }}>
-            <span style={{ fontSize:'0.55rem', color:'#6840a8', fontWeight:700, letterSpacing:'0.1em' }}>PREP NOTES</span>
+            <span style={{ fontSize:'0.55rem', color:'#2e5aaa', fontWeight:700, letterSpacing:'0.1em' }}>PREP NOTES</span>
             {hasMemo && <span style={{ fontSize:'0.55rem', color:'var(--text-muted)' }}>· saved</span>}
           </div>
           <textarea ref={memoRef}
@@ -270,12 +270,12 @@ export default function RundownItem({ item, rowNum, onRemove, onUpdate, cumSecs 
             style={{
               width:'100%', resize:'vertical', fontSize:'0.78rem',
               padding:'7px 10px', background:'white',
-              border:'1px solid #d0b8f0', borderRadius:5,
+              border:'1px solid #b0bcd8', borderRadius:5,
               color:'var(--text-dim)', fontFamily:'inherit', lineHeight:1.6,
               minHeight:62, outline:'none',
             }}
-            onFocus={e => e.currentTarget.style.borderColor = '#6840a8'}
-            onBlur={e => { e.currentTarget.style.borderColor = '#d0b8f0'; saveMemo(); }}
+            onFocus={e => e.currentTarget.style.borderColor = '#2e5aaa'}
+            onBlur={e => { e.currentTarget.style.borderColor = '#b0bcd8'; saveMemo(); }}
           />
         </div>
       )}
