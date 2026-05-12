@@ -100,17 +100,13 @@ export default function App() {
 
   // Export helpers
   const buildNotes = () => {
-    const W = 48;
-    const hr = '─'.repeat(W);
-    const dbl = '═'.repeat(W);
+    const div = '─'.repeat(44);
     const lines = [];
+    const ep = activeEpisode;
 
-    // Header
-    lines.push(dbl);
-    lines.push(`  SHOW NOTES`);
-    lines.push(`  ${activeEpisode?.title || 'Episode'}  ·  ${fmtEpDate(activeEpisode?.createdAt)}`);
-    if (activeEpisode?.guestName) lines.push(`  Guest: ${activeEpisode.guestName}`);
-    lines.push(dbl, '');
+    lines.push(`SHOW NOTES  —  ${ep?.title || 'Episode'}`);
+    lines.push(`${fmtEpDate(ep?.createdAt)}${ep?.guestName ? '  ·  Guest: ' + ep.guestName : ''}`);
+    lines.push('');
 
     const h1 = items.filter(i => (i.hour || 1) === 1);
     const h2 = items.filter(i => (i.hour || 1) === 2);
@@ -118,16 +114,15 @@ export default function App() {
     const renderHourNotes = (hourItems, hourNum) => {
       const withNotes = hourItems.filter(i => i.memo?.trim());
       if (!withNotes.length) return;
-      lines.push(`  ▸ HOUR ${hourNum}`);
-      lines.push(`  ${hr}`);
+      lines.push(`HOUR ${hourNum}`);
+      lines.push(div);
       withNotes.forEach(item => {
         const num = String(hourItems.indexOf(item) + 1).padStart(2, '0');
-        if (item.type === ITEM_TYPES.SONG) {
-          lines.push(`  #${num}  ${item.title || 'Untitled'}${item.artist ? ' — ' + item.artist : ''}`);
-        } else {
-          lines.push(`  #${num}  SPEAK${item.notes ? ': ' + item.notes : ''}`);
-        }
-        item.memo.trim().split('\n').forEach(l => lines.push(`       ${l}`));
+        const label = item.type === ITEM_TYPES.SONG
+          ? `#${num}  ${item.title || 'Untitled'}${item.artist ? '  —  ' + item.artist : ''}`
+          : `#${num}  SPEAK${item.notes ? ':  ' + item.notes : ''}`;
+        lines.push(label);
+        item.memo.trim().split('\n').forEach(l => lines.push(`     ${l}`));
         lines.push('');
       });
     };
@@ -137,50 +132,45 @@ export default function App() {
       renderHourNotes(h1, 1);
       renderHourNotes(h2, 2);
     } else {
-      lines.push('  (no item notes added yet)', '');
+      lines.push('(no item notes added yet)', '');
     }
 
-    const gn = activeEpisode?.generalNotes?.trim();
+    const gn = ep?.generalNotes?.trim();
     if (gn) {
-      lines.push(`  ▸ GENERAL NOTES`);
-      lines.push(`  ${hr}`);
-      gn.split('\n').forEach(l => lines.push(`  ${l}`));
-      lines.push('');
+      lines.push(`GENERAL NOTES`);
+      lines.push(div);
+      gn.split('\n').forEach(l => lines.push(l));
     }
 
-    lines.push(dbl);
     return lines.join('\n');
   };
 
   const buildText = () => {
-    const W = 48;
-    const hr = '─'.repeat(W);
-    const dbl = '═'.repeat(W);
-    let cumSecs = 0, newsIn = false, lines = [];
+    const div = '─'.repeat(44);
+    const lines = [];
+    const ep = activeEpisode;
 
-    lines.push(dbl);
-    lines.push(`  RADIO RUNDOWN`);
-    lines.push(`  ${activeEpisode?.title || 'Episode'}  ·  ${fmtEpDate(activeEpisode?.createdAt)}`);
-    if (activeEpisode?.guestName) lines.push(`  Guest: ${activeEpisode.guestName}`);
-    lines.push(`  Danish: ${quotas.danishPct.toFixed(1)}%   P6 Beat: ${quotas.p6Pct.toFixed(1)}%`);
-    lines.push(dbl, '');
+    lines.push(`RADIO RUNDOWN  —  ${ep?.title || 'Episode'}`);
+    lines.push(`${fmtEpDate(ep?.createdAt)}${ep?.guestName ? '  ·  Guest: ' + ep.guestName : ''}`);
+    lines.push(`Danish: ${quotas.danishPct.toFixed(1)}%   P6 Beat: ${quotas.p6Pct.toFixed(1)}%`);
+    lines.push('');
 
     const h1 = items.filter(i => (i.hour || 1) === 1);
     const h2 = items.filter(i => (i.hour || 1) === 2);
 
     const renderHour = (hourItems, hourNum, startSecs) => {
-      lines.push(`  ▸ HOUR ${hourNum}`);
-      lines.push(`  ${hr}`);
+      lines.push(`HOUR ${hourNum}`);
+      lines.push(div);
       let cur = startSecs;
       hourItems.forEach((item, idx) => {
-        const ts = formatTimestamp(cur);
         const num = String(idx + 1).padStart(2, '0');
+        const ts = formatTimestamp(cur).padEnd(6);
         if (item.type === ITEM_TYPES.SONG) {
           const tags = [item.isDanish&&'DK', item.isP6Beat&&'P6', item.segment==='guest'&&'GP', !item.diskoteketCleared&&'⚠ DISK'].filter(Boolean);
           const tagStr = tags.length ? `  [${tags.join(' · ')}]` : '';
-          lines.push(`  ${ts}  #${num}  ${item.title || 'Untitled'}${item.artist ? ' — ' + item.artist : ''}  ${formatDuration(item.duration)}${tagStr}`);
+          lines.push(`${ts}  #${num}  ${item.title || 'Untitled'}${item.artist ? '  —  ' + item.artist : ''}  ${formatDuration(item.duration)}${tagStr}`);
         } else {
-          lines.push(`  ${ts}  #${num}  🎙 SPEAK  ${formatDuration(item.duration)}${item.notes ? '  — ' + item.notes : ''}`);
+          lines.push(`${ts}  #${num}  🎙 SPEAK  ${formatDuration(item.duration)}${item.notes ? '  —  ' + item.notes : ''}`);
         }
         cur += item.duration || 0;
       });
@@ -189,11 +179,11 @@ export default function App() {
     };
 
     const afterH1 = renderHour(h1, 1, 0);
-    lines.push(`  ···  NEWS BREAK  55:00 → 60:00  ···`, '');
+    lines.push(`  ·  NEWS BREAK  55:00 → 60:00  ·`);
+    lines.push('');
     renderHour(h2, 2, afterH1 + (5 * 60));
-    lines.push(hr);
-    lines.push(`  Total: ${formatDuration(items.reduce((s, i) => s + (i.duration || 0), 0))}`);
-    lines.push(dbl);
+    lines.push(div);
+    lines.push(`Total  ${formatDuration(items.reduce((s, i) => s + (i.duration || 0), 0))}`);
     return lines.join('\n');
   };
 
